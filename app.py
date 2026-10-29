@@ -30,9 +30,9 @@ def adafruit_verilerini_cek(feed_key):
 
 
 while True:
-  ivme_data = adafruit_verilerini_cek("tubitak-proje.ivme")
-  duman_data = adafruit_verilerini_cek("tubitak-proje.duman")
-  sos_data = adafruit_verilerini_cek("tubitak-proje.sos")
+  ivme_data = adafruit_verilerini_cek("ivme")
+  duman_data = adafruit_verilerini_cek("duman")
+  sos_data = adafruit_verilerini_cek("sos")
 
   with placeholder.container():
     if ivme_data and "created_at" in ivme_data:
