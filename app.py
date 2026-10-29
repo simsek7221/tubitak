@@ -222,12 +222,12 @@ def render_dashboard():
     )
 
   with c2:
-    gaz_txt = "Yüksek Gaz!" if duman_val > 250 else "Gaz/Buhar Yok"
+    gaz_txt = "Yüksek Gaz!" if duman_val > 350 else "Alkol / Kötü Gaz Yok"
     st.markdown(
         f"""
             <div class="card-box" style="border-top: 4px solid #d29922;">
                 <div><b>⚠️ ALKOL</b></div>
-                <div style="font-size:16px; font-weight:bold; color:{'#d29922' if duman_val > 250 else '#3fb950'};">{gaz_txt}</div>
+                <div style="font-size:16px; font-weight:bold; color:{'#d29922' if duman_val > 350 else '#3fb950'};">{gaz_txt}</div>
                 <div style="font-size:12px; color:#8b949e;">Sensör Değeri: {duman_val}</div>
             </div>
         """,
@@ -239,7 +239,7 @@ def render_dashboard():
         f"""
             <div class="card-box" style="border-top: 4px solid #58a6ff;">
                 <div><b>📍 KONUM BİLGİSİ</b></div>
-                <div style="font-size:15px; font-weight:bold; color:#58a6ff;">Tablet Konumu</div>
+                <div style="font-size:15px; font-weight:bold; color:#58a6ff;">GPS Konumu</div>
                 <div style="font-size:11px; color:#8b949e;">Lat: {round(lat, 4)}, Lon: {round(lon, 4)}</div>
             </div>
         """,
@@ -264,12 +264,12 @@ def render_dashboard():
   # Kontrol Butonları (Alarmı İptal Et / Sustur)
   b_col1, b_col2 = st.columns(2)
   with b_col1:
-    if st.button("🔴 ALARMI İPTAL ET / SUSTUR", use_container_width=True):
+    if st.button("🔴 ALARMI İPTAL ET", use_container_width=True):
       st.session_state.manual_alarm_stop = True
       st.session_state.crash_cancelled = True
       st.toast("Tablet alarmı susturuldu ve durum sıfırlandı!")
   with b_col2:
-    if st.button("🔵 ALARMI TEKRAR AKTİFLEŞTİR", use_container_width=True):
+    if st.button("🔵 ALARMI AKTİFLEŞTİR", use_container_width=True):
       st.session_state.manual_alarm_stop = False
       st.toast("Alarm izleme modu yeniden açıldı.")
 
