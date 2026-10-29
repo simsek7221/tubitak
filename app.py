@@ -239,7 +239,7 @@ def render_dashboard():
     r = pdk.Deck(
         layers=[layer],
         initial_view_state=view_state,
-        map_style=pdk.MapStyle.SATELLITE,
+        map_style="mapbox://styles/mapbox/satellite-v9",
         tooltip={"text": "Kask Kimliği: KASK-001\nEnlem: {lat}\nBoylam: {lon}"},
     )
 
