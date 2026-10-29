@@ -11,9 +11,8 @@ st.set_page_config(
 st.title("🪖 TÜBİTAK Akıllı Kask Paneli")
 st.write("Adafruit IO Üzerinden Gerçek Zamanlı Canlı Takip")
 
-# Adafruit IO Bilgileriniz
 AIO_USERNAME = "ismail7221"
-AIO_KEY = "aio_flDp79YSaeJKdDDyIUwOks7vb7SH"  # Kendi AIO Key'inizi buraya yazın
+AIO_KEY = "Aio_flDp79YSaeJKdDDyIUwOks7vb7SH"
 
 headers = {"X-AIO-Key": AIO_KEY}
 placeholder = st.empty()
@@ -44,7 +43,6 @@ while True:
       except:
         fark_saniye = 0
 
-      # 15 saniyeden uzun süredir veri gelmediyse cihaz çevrimdışı sayılır
       if fark_saniye > 15:
         st.error(
             "⚠️ **CİHAZ ÇEVRİMDIŞI (OFFLINE)**: Deneyap Kart kapalı veya"
