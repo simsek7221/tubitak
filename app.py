@@ -6,15 +6,17 @@ import streamlit as st
 from streamlit_folium import st_folium
 from streamlit_geolocation import streamlit_geolocation
 
-# Sayfa Yapılandırması (Geniş Ekran ve Modern Başlık)
+# ==========================================
+# 1. SAYFA YAPILANDIRMASI VE GENEL AYARLAR
+# ==========================================
 st.set_page_config(
-    page_title="Akıllı Kask | Telemetri & Güvenlik Paneli",
+    page_title="Akıllı Kask | Endüstriyel Telemetri Paneli",
     page_icon="🛡️",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
 
-# Session State Tanımlamaları
+# Oturum Durumu (Session State) Tanımlamaları
 if "crash_start_time" not in st.session_state:
   st.session_state.crash_start_time = None
 if "crash_cancelled" not in st.session_state:
@@ -22,15 +24,20 @@ if "crash_cancelled" not in st.session_state:
 if "manual_alarm_stop" not in st.session_state:
   st.session_state.manual_alarm_stop = False
 
-# Ultra Modern / Endüstriyel HUD Tasarım Stilleri (CSS)
+# ==========================================
+# 2. ULTRA MODERN KASK HUD TASARIM STİLLERİ (CSS)
+# ==========================================
 st.markdown(
     """
     <style>
+    /* Genel Arka Plan ve Tipografi */
     .stApp { 
         background-color: #030712; 
         color: #f3f4f6; 
         font-family: 'Segoe UI', Roboto, Helvetica, sans-serif;
     }
+    
+    /* Üst Başlık Konsolu */
     .top-header {
         background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
         padding: 16px 24px;
@@ -42,6 +49,8 @@ st.markdown(
         margin-bottom: 16px;
         box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.7);
     }
+    
+    /* Sürücü Bilgi Paneli */
     .driver-box {
         background: rgba(15, 23, 42, 0.8);
         backdrop-filter: blur(12px);
@@ -54,7 +63,10 @@ st.markdown(
         display: flex;
         align-items: center;
         gap: 10px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     }
+    
+    /* Sistem Normal Durumu (Neon Yeşil) */
     .status-normal {
         background: linear-gradient(135deg, rgba(6, 78, 59, 0.8), rgba(4, 47, 46, 0.9));
         backdrop-filter: blur(12px);
@@ -68,6 +80,8 @@ st.markdown(
         margin-bottom: 16px;
         box-shadow: 0 0 20px rgba(52, 211, 153, 0.15);
     }
+    
+    /* Kritik Alarm Durumu (Parlayan Kırmızı HUD) */
     .status-alert {
         background: linear-gradient(135deg, rgba(127, 29, 29, 0.9), rgba(153, 27, 27, 0.9));
         backdrop-filter: blur(12px);
@@ -80,19 +94,34 @@ st.markdown(
         border: 1px solid #dc2626;
         margin-bottom: 16px;
         box-shadow: 0 0 30px rgba(220, 38, 38, 0.5);
+        animation: pulse-alert 1.5s infinite;
     }
+    
+    @keyframes pulse-alert {
+        0% { box-shadow: 0 0 15px rgba(220, 38, 38, 0.4); }
+        50% { box-shadow: 0 0 35px rgba(220, 38, 38, 0.8); }
+        100% { box-shadow: 0 0 15px rgba(220, 38, 38, 0.4); }
+    }
+
+    /* Metrik Kartları (Glassmorphism) */
     .card-box {
         background: rgba(15, 23, 42, 0.7);
         backdrop-filter: blur(10px);
         padding: 16px;
         border-radius: 12px;
         border: 1px solid #1e293b;
-        height: 150px;
+        height: 155px;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
         box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+        transition: transform 0.2s ease;
     }
+    .card-box:hover {
+        border-color: #475569;
+    }
+    
+    /* Harita Alt Bilgi Bandı */
     .map-footer-banner {
         background: rgba(3, 7, 18, 0.9);
         color: #94a3b8;
@@ -113,11 +142,13 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Firebase Realtime Database URL
+# Firebase Veritabanı Uç Noktası
 FIREBASE_URL = "https://akilli-kask-proje-default-rtdb.europe-west1.firebasedatabase.app/telemetri.json"
 
 
-# Arka Planda 2 Saniyede Bir Otomatik Yenilenen Canlı Akış (Fragment)
+# ==========================================
+# 3. CANLI AKIŞ VE KONTROL FONKSİYONU (2 Sn)
+# ==========================================
 @st.fragment(run_every=2)
 def render_dashboard():
   try:
@@ -129,27 +160,28 @@ def render_dashboard():
   except:
     data = {}
 
+  # Sensör Değerleri
   ivme_val = float(data.get("ivme", 1.0))
   duman_val = int(data.get("duman", 180))
   sos_val = int(data.get("sos", 0))
 
-  # Otomatik ve Canlı GPS Konum Tespiti (Tuş Yok, Doğrudan Okuma)
+  # Otomatik ve Kesintisiz GPS Konum Tespiti
   location = streamlit_geolocation()
   if location.get("latitude") and location.get("longitude"):
     lat = float(location["latitude"])
     lon = float(location["longitude"])
     konum_baslik = "GPS Kilitlendi (Canlı)"
-    konum_alt_metin = "Konum anlık güncelleniyor"
+    konum_alt_metin = "Anlık Uydu Takibi Aktif"
     konum_kaynagi = "Canlı GPS Koordinatı"
   else:
-    lat, lon = 38.5023, 43.3820  # İzin verilene kadar veya sinyal beklerken referans konum
-    konum_baslik = "GPS Sinyali Bekleniyor..."
-    konum_alt_metin = "Tarayıcı konum iznini kontrol edin"
-    konum_kaynagi = "GPS Bekleniyor"
+    lat, lon = 38.5023, 43.3820  # Sinyal beklenirken referans koordinat
+    konum_baslik = "GPS Aranıyor..."
+    konum_alt_metin = "Uydu bağlantısı bekleniyor"
+    konum_kaynagi = "GPS Sinyali Bekleniyor"
 
   now_str = datetime.now().strftime("%d.%m.%Y   %H:%M:%S")
 
-  # Kaza Algılama ve 15 Saniye Geri Sayım Mantığı
+  # Kaza Algılama ve 15 Saniye Geri Sayım Emniyet Mekanizması
   is_crash_detected = ivme_val > 3.5
   if is_crash_detected and not st.session_state.crash_cancelled:
     if st.session_state.crash_start_time is None:
@@ -179,13 +211,17 @@ def render_dashboard():
     else:
       crash_active_final = True
 
-  # 1. Üst Başlık Konsolu
+  # ------------------------------------------
+  # ARAYÜZ BİLEŞENLERİNİN OLUŞTURULMASI
+  # ------------------------------------------
+
+  # Üst Başlık Konsolu
   st.markdown(
       f"""
         <div class="top-header">
             <div>
                 <h2 style="margin:0; color:#ffffff; font-size:22px; letter-spacing:0.5px;">🛡️ AKILLI KASK TELEMETRİSİ <span style="font-size:12px; background:#0284c7; color:white; padding:3px 10px; border-radius:12px; margin-left:8px; font-weight:600;">KASK-001</span></h2>
-                <p style="margin:3px 0 0 0; color:#94a3b8; font-size:12px;">Yeni Nesil Güvenli Sürüş ve Kaza Tespit Sistemi</p>
+                <p style="margin:3px 0 0 0; color:#94a3b8; font-size:12px;">TÜBİTAK Proje Sunum ve Canlı Takip Paneli</p>
             </div>
             <div style="text-align:right;">
                 <span style="color:#94a3b8; font-size:12px;">📅 {now_str}</span><br>
@@ -196,7 +232,7 @@ def render_dashboard():
       unsafe_allow_html=True,
   )
 
-  # 2. Sürücü Bilgisi
+  # Sürücü Bilgisi
   st.markdown(
       """
         <div class="driver-box">
@@ -206,7 +242,7 @@ def render_dashboard():
       unsafe_allow_html=True,
   )
 
-  # 3. Sistem Durumu Banner
+  # Sistem Durum Paneli & Sesli Alarm Tetikleyicisi
   alarm_durumu_aktif = (
       sos_val == 1 or crash_active_final or duman_val > 350
   ) and not st.session_state.manual_alarm_stop
@@ -233,13 +269,13 @@ def render_dashboard():
         """
             <div class="status-normal">
                 ✔ SİSTEM GÜVENLİ VE AKTİF
-                <div style="font-size:12px; font-weight:normal; color:#94a3b8; margin-top:2px;">Tüm sensörler normal değerlerde çalışıyor.</div>
+                <div style="font-size:12px; font-weight:normal; color:#94a3b8; margin-top:2px;">Tüm telemetri sensörleri normal değerlerde çalışıyor.</div>
             </div>
         """,
         unsafe_allow_html=True,
     )
 
-  # 4. 4'lü Metrik Kartları
+  # 4'lü Endüstriyel Metrik Kartları
   c1, c2, c3, c4 = st.columns(4)
 
   with c1:
@@ -309,13 +345,15 @@ def render_dashboard():
 
   st.markdown("---")
 
-  # Harita ve Yan Bilgi Paneli (Canlı GPS ve Modern Kask Simgesi)
+  # ------------------------------------------
+  # 4. HARİTA VE UYDU GÖRÜNÜMÜ BÖLÜMÜ
+  # ------------------------------------------
   map_col, info_col = st.columns([2.3, 1])
 
   with map_col:
     st.markdown("### 🛰️ CANLI UYDU GPS TAKİP HARİTASI (KASK-001)")
 
-    # Folium Haritası (Anlık koordinata odaklı)
+    # Folium Haritası Oluşturma
     m = folium.Map(
         location=[lat, lon],
         zoom_start=16,
@@ -332,7 +370,7 @@ def render_dashboard():
         name="Uydu Görüntüsü",
     ).add_to(m)
 
-    # MODERN MOTOSİKLET KASKI ÖZEL HTML / HUD MARKER
+    # Modern Motosiklet Kaskı ve Neon Halka İçeren Özel HTML Markeri
     helmet_icon_html = """
     <div style="
         position: relative;
@@ -400,6 +438,7 @@ def render_dashboard():
         tooltip="KASK-001 (Canlı GPS)",
     ).add_to(m)
 
+    # Haritayı Render Et
     st_folium(m, height=410, use_container_width=True)
 
     st.markdown(
