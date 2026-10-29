@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 import time
 import pandas as pd
 import requests
@@ -11,7 +12,7 @@ st.set_page_config(
 st.title("🪖 TÜBİTAK Akıllı Kask Paneli")
 st.write("ThingSpeak Bulut Üzerinden Canlı Veri ve Durum Takibi")
 
-# ThingSpeak Kanal ID'nizi buraya yazın (Örn: "1234567")
+# ThingSpeak Kanal ID'niz
 CHANNEL_ID = "3558172"
 
 # Arayüz Konteyneri
@@ -31,6 +32,7 @@ def thingspeak_verilerini_al():
             "ivme": float(latest.get("field1", 0) or 0),
             "duman": int(float(latest.get("field2", 0) or 0)),
             "sos": int(float(latest.get("field3", 0) or 0)),
+            "created_at": latest.get("created_at"),  # Verinin gönderildiği zaman
         }
   except Exception as e:
     return None
@@ -42,30 +44,48 @@ while True:
   data = thingspeak_verilerini_al()
 
   with placeholder.container():
-    if data:
-      # Metrik Kartları
-      col1, col2, col3 = st.columns(3)
-      col1.metric("İvme (X)", f"{data['ivme']} g")
-      col2.metric("Duman / Gaz", data["duman"])
+    if data and data["created_at"]:
+      # --- KARTIN AÇIK/KAPALI OLDUĞUNU KONTROL ET ---
+      try:
+        # ThingSpeak zaman damgasını UTC olarak al ve şimdiki zamanla kıyasla
+        dt_str = data["created_at"].replace("Z", "+00:00")
+        data_time = datetime.fromisoformat(dt_str)
+        simdi = datetime.now(timezone.utc)
+        fark_saniye = (simdi - data_time).total_seconds()
+      except:
+        fark_saniye = 0
 
-      sos_durum_str = "BASILDI!" if data["sos"] == 1 else "YOK"
-      col3.metric("SOS Durumu", sos_durum_str)
-
-      # SOS Acil Durum Uyarısı
-      if data["sos"] == 1:
+      # Eğer son veri 40 saniyeden eskiyse, Deneyap Kart kapalı/çevrimdışı demektir
+      if fark_saniye > 40:
         st.error(
-            "🚨 KRİTİK UYARI: Kask kullanıcısı SOS butonuna bastı! Acil durum"
-            " aktif!"
+            "⚠️ **CİHAZ ÇEVRİMDIŞI (OFFLINE)**: Deneyap Kart'ın enerjisi"
+            f" kesik veya internet bağlantısı yok! (Son veri {int(fark_saniye)}"
+            " saniye önce alındı)"
         )
       else:
-        st.success("Sistem Durumu: Normal")
+        # Metrik Kartları (Sistem aktifse gösterilir)
+        col1, col2, col3 = st.columns(3)
+        col1.metric("İvme (X)", f"{data['ivme']} g")
+        col2.metric("Duman / Gaz", data["duman"])
+
+        sos_durum_str = "BASILDI!" if data["sos"] == 1 else "YOK"
+        col3.metric("SOS Durumu", sos_durum_str)
+
+        # SOS Acil Durum Uyarısı
+        if data["sos"] == 1:
+          st.error(
+              "🚨 KRİTİK UYARI: Kask kullanıcısı SOS butonuna bastı! Acil durum"
+              " aktif!"
+          )
+        else:
+          st.success("Sistem Durumu: Çevrim İçi ve Normal")
 
     else:
       st.warning(
-          "Buluttan henüz veri alınamadı. Deneyap Kart'ın veri göndermesini"
-          " bekliyor veya Channel ID'yi kontrol edin."
+          "Buluttan henüz veri alınamadı veya kanal boş. Deneyap Kart'ın veri"
+          " gönderdiğinden emin olun."
       )
 
-  # ThingSpeak ücretsiz sürümü saniyede çok fazla istek istemez (15 saniye önerilir)
-  time.sleep(15)
+  # 10 saniyede bir sayfayı yenile
+  time.sleep(10)
   st.rerun()
