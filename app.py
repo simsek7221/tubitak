@@ -22,18 +22,15 @@ if "crash_cancelled" not in st.session_state:
 if "manual_alarm_stop" not in st.session_state:
   st.session_state.manual_alarm_stop = False
 
-# Ultra Modern / Endüstriyel HUD Tasarım Stilleri (CSS)
+# Ultra Modern / Endüstriyel HUD Tasarım Stilleri (Normal String - Hata Önleyici)
 st.markdown(
     """
     <style>
-    /* Genel Arka Plan ve Tipografi */
     .stApp { 
         background-color: #030712; 
         color: #f3f4f6; 
         font-family: 'Segoe UI', Roboto, Helvetica, sans-serif;
     }
-    
-    /* Üst Başlık Konsolu */
     .top-header {
         background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
         padding: 16px 24px;
@@ -45,8 +42,6 @@ st.markdown(
         margin-bottom: 16px;
         box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.7);
     }
-    
-    /* Sürücü Bilgi Paneli */
     .driver-box {
         background: rgba(15, 23, 42, 0.8);
         backdrop-filter: blur(12px);
@@ -60,8 +55,6 @@ st.markdown(
         align-items: center;
         gap: 10px;
     }
-    
-    /* Sistem Normal Durumu (Yeşil Neon) */
     .status-normal {
         background: linear-gradient(135deg, rgba(6, 78, 59, 0.8), rgba(4, 47, 46, 0.9));
         backdrop-filter: blur(12px);
@@ -75,8 +68,6 @@ st.markdown(
         margin-bottom: 16px;
         box-shadow: 0 0 20px rgba(52, 211, 153, 0.15);
     }
-    
-    /* Sistem Alarm Durumu (Kırmızı Parlayan HUD) */
     .status-alert {
         background: linear-gradient(135deg, rgba(127, 29, 29, 0.9), rgba(153, 27, 27, 0.9));
         backdrop-filter: blur(12px);
@@ -91,14 +82,11 @@ st.markdown(
         box-shadow: 0 0 30px rgba(220, 38, 38, 0.5);
         animation: pulse-alert 1.5s infinite;
     }
-    
     @keyframes pulse-alert {
         0% { box-shadow: 0 0 15px rgba(220, 38, 38, 0.4); }
         50% { box-shadow: 0 0 35px rgba(220, 38, 38, 0.8); }
         100% { box-shadow: 0 0 15px rgba(220, 38, 38, 0.4); }
     }
-
-    /* Metrik Kartları (Glassmorphism) */
     .card-box {
         background: rgba(15, 23, 42, 0.7);
         backdrop-filter: blur(10px);
@@ -110,13 +98,7 @@ st.markdown(
         flex-direction: column;
         justify-content: space-between;
         box-shadow: 0 8px 20px rgba(0,0,0,0.4);
-        transition: transform 0.2s ease;
     }
-    .card-box:hover {
-        border-color: #475569;
-    }
-    
-    /* Harita Alt Bilgi Bandı */
     .map-footer-banner {
         background: rgba(3, 7, 18, 0.9);
         color: #94a3b8;
@@ -357,7 +339,6 @@ def render_dashboard():
     ).add_to(m)
 
     # MODERN MOTOSİKLET KASKI ÖZEL HTML / HUD MARKER
-    # Eski WWI pinleri yerine profesyonel, modern bir kask görseli ve neon çerçeve kullanıldı.
     helmet_icon_html = f"""
     <div style="
         position: relative;
@@ -367,7 +348,6 @@ def render_dashboard():
         width: 60px;
         height: 60px;
     ">
-        <!-- Arka Plan Parlayan Neon Halkası -->
         <div style="
             position: absolute;
             width: 50px;
@@ -377,8 +357,6 @@ def render_dashboard():
             border-radius: 50%;
             animation: pulse-ring 2s infinite;
         "></div>
-        
-        <!-- Kask Merkez Kutusu -->
         <div style="
             position: relative;
             background: linear-gradient(135deg, #0f172a, #1e1b4b);
@@ -391,11 +369,8 @@ def render_dashboard():
             justify-content: center;
             box-shadow: 0 0 15px rgba(56, 189, 248, 0.7);
         ">
-            <!-- Modern Motosiklet Kaskı PNG Görseli -->
             <img src="https://cdn-icons-png.flaticon.com/512/2965/2965352.png" style="width: 24px; height: 24px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));" />
         </div>
-
-        <!-- Cihaz Etiketi Rozeti -->
         <div style="
             position: absolute;
             bottom: -22px;
@@ -415,15 +390,14 @@ def render_dashboard():
     </div>
     
     <style>
-    @keyframes pulse-ring {
-        0% { transform: scale(0.95); opacity: 0.8; }
-        50% { transform: scale(1.35); opacity: 0.2; }
-        100% { transform: scale(0.95); opacity: 0.8; }
-    }
+    @keyframes pulse-ring {{
+        0% {{ transform: scale(0.95); opacity: 0.8; }}
+        50% {{ transform: scale(1.35); opacity: 0.2; }}
+        100% {{ transform: scale(0.95); opacity: 0.8; }}
+    }}
     </style>
     """
 
-    # Özel HTML Icon'u Haritaya Ekleme
     folium.Marker(
         [lat, lon],
         icon=folium.DivIcon(
@@ -432,10 +406,8 @@ def render_dashboard():
         tooltip="KASK-001 (Canlı GPS)",
     ).add_to(m)
 
-    # Haritayı Streamlit İçinde Render Et
     st_folium(m, height=410, use_container_width=True)
 
-    # Harita Alt Bilgi Şeridi
     st.markdown(
         """
         <div class="map-footer-banner">
