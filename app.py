@@ -110,7 +110,7 @@ def render_dashboard():
     lon = float(location["longitude"])
     konum_kaynagi = "Tablet / Cihaz Canlı Konum"
   else:
-    # Konum izni verilmediyse veya yükleniyorsa varsayılan konum (Van Merkez)
+    # Konum izni verilmediyse varsayılan konum (Van Merkez)
     lat, lon = 38.5023, 43.3820
     konum_kaynagi = "Varsayılan Konum (İzin Bekleniyor)"
 
@@ -262,7 +262,7 @@ def render_dashboard():
 
   st.write("")
 
-  # Kontrol Butonları (Alarmı İptal Et / Sustur)
+  # Kontrol Butonları
   b_col1, b_col2 = st.columns(2)
   with b_col1:
     if st.button("🔴 ALARMI İPTAL ET", use_container_width=True):
@@ -276,7 +276,7 @@ def render_dashboard():
 
   st.markdown("---")
 
-  # Harita ve Bilgi Bölümü (Ücretsiz Gerçek Uydu Görüntüsü ve Motosiklet Kaskı İkonu)
+  # Harita ve Bilgi Bölümü (Merkezlenmiş İkon ve Uydu Görüntüsü)
   map_col, info_col = st.columns([2, 1])
 
   with map_col:
@@ -295,13 +295,14 @@ def render_dashboard():
                     ),
                     "width": 128,
                     "height": 128,
-                    "anchorY": 128,
+                    "anchorX": 64,  # İkonu yatayda tam ortalar
+                    "anchorY": 64,  # İkonu dikeyde tam ortalar (kesilmeyi önler)
                 }
             ],
         }
     )
 
-    # 1. Token Gerektirmeyen Gerçek Uydu Katmanı (ESRI World Imagery)
+    # 1. Ücretsiz Gerçek Uydu Katmanı (ESRI World Imagery)
     tile_layer = pdk.Layer(
         "TileLayer",
         data="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
@@ -310,7 +311,7 @@ def render_dashboard():
         tileSize=256,
     )
 
-    # 2. Parlayan Radar/Çember Efekti Katmanı
+    # 2. Parlayan Radar / Çember Efekti Katmanı
     scatterplot_layer = pdk.Layer(
         "ScatterplotLayer",
         df_map,
@@ -325,7 +326,7 @@ def render_dashboard():
         pickable=True,
     )
 
-    # 3. Motosiklet Kaskı Görsel İkon Katmanı
+    # 3. Motosiklet Kaskı Görsel İkon Katmanı (Tam Merkezli)
     icon_layer = pdk.Layer(
         "IconLayer",
         df_map,
@@ -356,7 +357,7 @@ def render_dashboard():
     r = pdk.Deck(
         layers=[tile_layer, scatterplot_layer, icon_layer, text_layer],
         initial_view_state=view_state,
-        map_style=None,  # TileLayer kullanıldığı içinharita stili harici çağrılmaz
+        map_style=None,
         tooltip={
             "text": (
                 "Cihaz: KASK-001\nEnlem: {lat}\nBoylam:"
@@ -371,8 +372,8 @@ def render_dashboard():
     st.markdown("### 📌 KONUM DETAYI")
     st.write(f"**Kaynak:** {konum_kaynagi}")
     st.caption(
-        "Google Earth kalitesinde uydu katmanı ve gerçek zamanlı tablet"
-        " koordinatları aktif."
+        "Google Earth kalitesinde uydu katmanı ve tam merkezli kask simgesi"
+        " aktif."
     )
     st.markdown("---")
     st.write(f"**Son Güncelleme:**\n{now_str}")
