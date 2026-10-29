@@ -107,7 +107,7 @@ def render_dashboard():
   if location.get("latitude") and location.get("longitude"):
     lat = float(location["latitude"])
     lon = float(location["longitude"])
-    konum_kaynagi = "Tablet / Cihaz Konumu (Canlı)"
+    konum_kaynagi = "GPS Konumu / Canlı"
   else:
     # Konum izni verilmediyse veya yükleniyorsa varsayılan konum
     lat, lon = 38.5023, 43.3820
@@ -226,7 +226,7 @@ def render_dashboard():
     st.markdown(
         f"""
             <div class="card-box" style="border-top: 4px solid #d29922;">
-                <div><b>⚠️ ALKOL / BUHAR</b></div>
+                <div><b>⚠️ ALKOL</b></div>
                 <div style="font-size:16px; font-weight:bold; color:{'#d29922' if duman_val > 250 else '#3fb950'};">{gaz_txt}</div>
                 <div style="font-size:12px; color:#8b949e;">Sensör Değeri: {duman_val}</div>
             </div>
@@ -247,7 +247,7 @@ def render_dashboard():
     )
 
   with c4:
-    sos_txt = "AKTİF (BASILDI!)" if sos_val == 1 else "Pasif (Normal)"
+    sos_txt = "AKTİF" if sos_val == 1 else "Pasif"
     st.markdown(
         f"""
             <div class="card-box" style="border-top: 4px solid #ff7b72;">
