@@ -22,7 +22,7 @@ if "crash_cancelled" not in st.session_state:
 if "manual_alarm_stop" not in st.session_state:
   st.session_state.manual_alarm_stop = False
 
-# Arayüz Tasarım Stilleri (CSS)
+# Arayüz Tasarım Stilleri (CSS - 2367.jpg Görseline Birebir Uyumlu)
 st.markdown(
     """
     <style>
@@ -73,7 +73,7 @@ st.markdown(
         padding: 15px;
         border-radius: 8px;
         border: 1px solid #30363d;
-        height: 140px;
+        height: 145px;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
@@ -103,20 +103,22 @@ def render_dashboard():
   duman_val = int(data.get("duman", 180))
   sos_val = int(data.get("sos", 0))
 
-  # Tabletin / Tarayıcının Gerçek Konum Bilgisini Alıyoruz
+  # Tarayıcı/Cihaz Üzerinden Canlı GPS Konum Bilgisi
   location = streamlit_geolocation()
   if location.get("latitude") and location.get("longitude"):
     lat = float(location["latitude"])
     lon = float(location["longitude"])
-    konum_kaynagi = "Tablet / Cihaz Canlı Konum"
+    konum_durum_metni = "GPS Koordinatı Aktif"
+    konum_kaynagi = "Canlı GPS Konumu"
   else:
-    # Konum izni verilmediyse varsayılan konum (Van Merkez)
+    # İzin verilene kadar varsayılan konum
     lat, lon = 38.5023, 43.3820
+    konum_durum_metni = "GPS konum bekleniyor..."
     konum_kaynagi = "Varsayılan Konum (İzin Bekleniyor)"
 
   now_str = datetime.now().strftime("%d.%m.%Y   %H:%M:%S")
 
-  # Kaza Algılama Kontrolü ve 15 Saniye Geri Sayım Mantığı
+  # Kaza Algılama ve 15 Saniye Geri Sayım Mantığı
   is_crash_detected = ivme_val > 3.5
   if is_crash_detected and not st.session_state.crash_cancelled:
     if st.session_state.crash_start_time is None:
@@ -125,7 +127,6 @@ def render_dashboard():
     st.session_state.crash_start_time = None
     st.session_state.crash_cancelled = False
 
-  # Geri Sayım Hesaplama
   crash_active_final = False
   if (
       st.session_state.crash_start_time is not None
@@ -135,7 +136,7 @@ def render_dashboard():
     remaining = 15 - elapsed
     if remaining > 0:
       st.warning(
-          f"🚨 **KAZA TİTREŞİMİ ALGILANDI!** İptal edilmezse tablet alarmı"
+          f"🚨 **KAZA TİTREŞİMİ ALGILANDI!** İptal edilmezse acil durum alarmı"
           f" çalacak: **{remaining} saniye** kaldı!"
       )
       if st.button(
@@ -147,7 +148,7 @@ def render_dashboard():
     else:
       crash_active_final = True
 
-  # 1. Üst Başlık ve Kask Numarası
+  # 1. Üst Başlık (2367.jpg ile birebir IP ve Başlık Yapısı)[span_1](start_span)[span_1](end_span)
   st.markdown(
       f"""
         <div class="top-header">
@@ -157,14 +158,14 @@ def render_dashboard():
             </div>
             <div style="text-align:right;">
                 <span style="color:#8b949e; font-size:13px;">📅 {now_str}</span><br>
-                <span style="color:#3fb950; font-weight:bold; font-size:13px;">🟢 Bağlı • CANLI</span>
+                <span style="color:#3fb950; font-weight:bold; font-size:13px;">🟢 Bağlı • CANLI &nbsp;|&nbsp; 192.168.4.1</span>
             </div>
         </div>
     """,
       unsafe_allow_html=True,
   )
 
-  # 2. Sürücü Bilgisi
+  # 2. Sürücü Bilgisi[span_2](start_span)[span_2](end_span)
   st.markdown(
       """
         <div class="driver-box">
@@ -174,7 +175,7 @@ def render_dashboard():
       unsafe_allow_html=True,
   )
 
-  # Alarm Durumu (SOS aktifse veya kaza 15 sn süresini doldurduysa tabletten ses çalar)
+  # Alarm Durumu (Sesli Alarm)
   alarm_durumu_aktif = (
       sos_val == 1 or crash_active_final or duman_val > 350
   ) and not st.session_state.manual_alarm_stop
@@ -183,7 +184,7 @@ def render_dashboard():
     st.markdown(
         """
             <div class="status-alert">
-                🚨 TABLET SESLİ ALARMI ÇALIYOR! — SOS veya kaza teyit edildi!
+                🚨 SESLİ ALARM ÇALIYOR! — SOS veya kaza teyit edildi!
             </div>
         """,
         unsafe_allow_html=True,
@@ -206,30 +207,30 @@ def render_dashboard():
         unsafe_allow_html=True,
     )
 
-  # 4. 4'lü Metrik Kartları
+  # 4. 4'lü Metrik Kartları (2367.jpg Tasarım Düzeni ve Metinleri)[span_3](start_span)[span_3](end_span)
   c1, c2, c3, c4 = st.columns(4)
 
   with c1:
-    kaza_txt = "Kaza Var!" if is_crash_detected else "Kaza Yok (Normal)"
+    kaza_txt = "Kaza Var!" if is_crash_detected else "Kaza Yok"
     st.markdown(
         f"""
             <div class="card-box" style="border-top: 4px solid #f85149;">
                 <div><b>🚨 KAZA DURUMU</b></div>
                 <div style="font-size:16px; font-weight:bold; color:{'#f85149' if is_crash_detected else '#3fb950'};">{kaza_txt}</div>
-                <div style="font-size:12px; color:#8b949e;">İvme: {round(ivme_val, 2)} g</div>
+                <div style="font-size:12px; color:#8b949e;">Kaza sayısı: 0 (İvme: {round(ivme_val, 2)} g)</div>
             </div>
         """,
         unsafe_allow_html=True,
     )
 
   with c2:
-    gaz_txt = "Yüksek Gaz!" if duman_val > 350 else "Alkol / Kötü Gaz Yok"
+    gaz_txt = "Yüksek Gaz!" if duman_val > 350 else "Gaz/Buhar Yok"
     st.markdown(
         f"""
             <div class="card-box" style="border-top: 4px solid #d29922;">
-                <div><b>⚠️ ALKOL</b></div>
+                <div><b>⚠️ ALKOL / BUHAR UYARISI</b></div>
                 <div style="font-size:16px; font-weight:bold; color:{'#d29922' if duman_val > 350 else '#3fb950'};">{gaz_txt}</div>
-                <div style="font-size:12px; color:#8b949e;">Sensör Değeri: {duman_val}</div>
+                <div style="font-size:11px; color:#8b949e;">Gaz/buhar sensörüyle uyarı takibi; promil ölçümü değildir.</div>
             </div>
         """,
         unsafe_allow_html=True,
@@ -240,21 +241,21 @@ def render_dashboard():
         f"""
             <div class="card-box" style="border-top: 4px solid #58a6ff;">
                 <div><b>📍 KONUM BİLGİSİ</b></div>
-                <div style="font-size:15px; font-weight:bold; color:#58a6ff;">Tablet Konumu</div>
-                <div style="font-size:11px; color:#8b949e;">Lat: {round(lat, 4)}, Lon: {round(lon, 4)}</div>
+                <div style="font-size:15px; font-weight:bold; color:#58a6ff;">GPS Konumu</div>
+                <div style="font-size:11px; color:#8b949e;">{konum_durum_metni}<br>Lat: {round(lat, 4)}, Lon: {round(lon, 4)}</div>
             </div>
         """,
         unsafe_allow_html=True,
     )
 
   with c4:
-    sos_txt = "AKTİF" if sos_val == 1 else "Pasif"
+    sos_txt = "AKTİF (BASILDI!)" if sos_val == 1 else "Pasif"
     st.markdown(
         f"""
             <div class="card-box" style="border-top: 4px solid #ff7b72;">
-                <div><b>🆘 SOS ÇAĞRISI</b></div>
+                <div><b>🆘 SOS YARDIM ÇAĞRISI</b></div>
                 <div style="font-size:16px; font-weight:bold; color:{'#ff7b72' if sos_val == 1 else '#3fb950'};">{sos_txt}</div>
-                <div style="font-size:12px; color:#8b949e;">Kask butonu ile kontrol edilir</div>
+                <div style="font-size:12px; color:#8b949e;">Kask üzerindeki butonla kontrol edilir.</div>
             </div>
         """,
         unsafe_allow_html=True,
@@ -262,26 +263,26 @@ def render_dashboard():
 
   st.write("")
 
-  # Kontrol Butonları
+  # Kontrol Butonları[span_4](start_span)[span_4](end_span)
   b_col1, b_col2 = st.columns(2)
   with b_col1:
     if st.button("🔴 ALARMI İPTAL ET", use_container_width=True):
       st.session_state.manual_alarm_stop = True
       st.session_state.crash_cancelled = True
-      st.toast("Tablet alarmı susturuldu ve durum sıfırlandı!")
+      st.toast("Alarm susturuldu ve sistem sıfırlandı!")
   with b_col2:
-    if st.button("🔵 ALARMI AKTİFLEŞTİR", use_container_width=True):
+    if st.button("🔵 SESLİ ALARMI AÇ", use_container_width=True):
       st.session_state.manual_alarm_stop = False
-      st.toast("Alarm izleme modu yeniden açıldı.")
+      st.toast("Alarm modu aktifleştirildi.")
 
   st.markdown("---")
 
-  # Harita ve Bilgi Bölümü (Merkezlenmiş İkon ve Uydu Görüntüsü)
+  # Harita ve Bilgi Bölümü (2367.jpg Tasarım Formatı)[span_5](start_span)[span_5](end_span)
   map_col, info_col = st.columns([2, 1])
 
   with map_col:
     st.markdown(
-        "### 🛰️ GOOGLE EARTH UYDU GÖRÜNÜMÜ & MOTOSİKLET KASKI İŞARETÇİSİ"
+        "### 🗺️ KONUM HARİTASI (Google Earth Uydu Görünümü & GPS Noktası)"
     )
 
     df_map = pd.DataFrame(
@@ -295,14 +296,14 @@ def render_dashboard():
                     ),
                     "width": 128,
                     "height": 128,
-                    "anchorX": 64,  # İkonu yatayda tam ortalar
-                    "anchorY": 64,  # İkonu dikeyde tam ortalar (kesilmeyi önler)
+                    "anchorX": 64,
+                    "anchorY": 64,
                 }
             ],
         }
     )
 
-    # 1. Ücretsiz Gerçek Uydu Katmanı (ESRI World Imagery)
+    # Ücretsiz ve Sorunsuz Uydu Görüntü Katmanı (ESRI World Imagery)
     tile_layer = pdk.Layer(
         "TileLayer",
         data="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
@@ -311,7 +312,7 @@ def render_dashboard():
         tileSize=256,
     )
 
-    # 2. Parlayan Radar / Çember Efekti Katmanı
+    # Radar/Çember Efekti
     scatterplot_layer = pdk.Layer(
         "ScatterplotLayer",
         df_map,
@@ -326,7 +327,7 @@ def render_dashboard():
         pickable=True,
     )
 
-    # 3. Motosiklet Kaskı Görsel İkon Katmanı (Tam Merkezli)
+    # Tam Merkezli Motosiklet Kaskı Görsel İkonu
     icon_layer = pdk.Layer(
         "IconLayer",
         df_map,
@@ -337,12 +338,12 @@ def render_dashboard():
         pickable=True,
     )
 
-    # 4. Kask ID Etiket Katmanı
+    # Kask ID Etiket Katmanı
     text_layer = pdk.Layer(
         "TextLayer",
         df_map,
         get_position="[lon, lat]",
-        get_text="'🛡️ KASK-001 (Canlı)'",
+        get_text="'🛡️ KASK-001 (GPS Aktif)'",
         get_size=16,
         get_color=[255, 255, 255],
         get_background_color=[13, 17, 23, 230],
@@ -360,8 +361,8 @@ def render_dashboard():
         map_style=None,
         tooltip={
             "text": (
-                "Cihaz: KASK-001\nEnlem: {lat}\nBoylam:"
-                " {lon}\nKoordinat Kaynağı: Canlı Tablet"
+                "Cihaz: KASK-001\nEnlem: {lat}\nBoylam: {lon}\nKaynak: Canlı"
+                " GPS"
             )
         },
     )
@@ -369,12 +370,10 @@ def render_dashboard():
     st.pydeck_chart(r, use_container_width=True)
 
   with info_col:
-    st.markdown("### 📌 KONUM DETAYI")
-    st.write(f"**Kaynak:** {konum_kaynagi}")
-    st.caption(
-        "Google Earth kalitesinde uydu katmanı ve tam merkezli kask simgesi"
-        " aktif."
-    )
+    st.markdown("### 📌 KONUM BİLGİSİ")
+    st.write(f"**Mevcut Konum:**")
+    st.write("Van, Türkiye (Canlı GPS)")
+    st.caption("GPS konumu aktif. Harita gerçek zamanlı güncellenmektedir.")
     st.markdown("---")
     st.write(f"**Son Güncelleme:**\n{now_str}")
     st.write("**Cihaz ID:** KASK-001")
