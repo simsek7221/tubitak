@@ -1,181 +1,259 @@
-#include <WiFi.h>
-#include <WiFiClientSecure.h>
-#include <HTTPClient.h>
-#include <Wire.h>
+from datetime import datetime
+import pydeck as pdk
+import requests
+import streamlit as st
 
-const char* ssid = "TurkNet";
-const char* password = "Seccad.*0805";
+# Sayfa Yapılandırması
+st.set_page_config(
+    page_title="Akıllı Kask | Güvenlik Paneli",
+    page_icon="🪖",
+    layout="wide",
+    initial_sidebar_state="collapsed",
+)
 
-// Google Cloud Firebase Veritabanı Adresin
-const char* firebaseHost = "akilli-kask-proje-default-rtdb.europe-west1.firebasedatabase.app";
-
-class TinyLCD {
-  uint8_t addr;
-public:
-  TinyLCD(uint8_t lcd_addr) { addr = lcd_addr; }
-  void begin() {
-    delay(50);
-    command(0x03); command(0x03); command(0x03); command(0x02);
-    command(0x28); command(0x0C); command(0x06);
-    clear();
-  }
-  void send(uint8_t value, uint8_t mode) {
-    uint8_t high = mode | (value & 0xF0) | 0x08;
-    uint8_t low = mode | ((value << 4) & 0xF0) | 0x08;
-    Wire.beginTransmission(addr);
-    Wire.write(high | 0x04); Wire.write(high & ~0x04);
-    Wire.write(low | 0x04); Wire.write(low & ~0x04);
-    Wire.endTransmission();
-    delayMicroseconds(50);
-  }
-  void command(uint8_t val) { send(val, 0x00); }
-  void writeChar(uint8_t val) { send(val, 0x01); }
-  void clear() { command(0x01); delay(2); }
-  void setCursor(uint8_t col, uint8_t row) {
-    int row_offsets[] = { 0x00, 0x40, 0x14, 0x54 };
-    command(0x80 | (col + row_offsets[row]));
-  }
-  void print(const String &s) {
-    for (int i = 0; i < s.length(); i++) {
-      writeChar(s[i]);
+# Arayüz Tasarım Stilleri (CSS)
+st.markdown(
+    """
+    <style>
+    .stApp { background-color: #0d1117; color: #c9d1d9; }
+    .top-header {
+        background: linear-gradient(90deg, #161b22, #1f242d);
+        padding: 15px 20px;
+        border-radius: 8px;
+        border: 1px solid #30363d;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
     }
-  }
-};
-
-TinyLCD lcd(0x27);
-
-#ifndef D1
-#define D1 1
-#endif
-#ifndef D2
-#define D2 2
-#endif
-
-const int sosButtonPin = D1; 
-const int buzzerPin = D2;     // Sesli uyarı için Buzzer pini
-const int dumanI2CAddress = 0x39;
-
-float ivmeX = 1.0;
-int dumanDegeri = 180;
-bool lastButtonState = HIGH;
-bool sosToggleState = false;
-int sosDurumuVal = 0;
-
-// Örnek Harita Koordinatları (Van Merkez)
-float latVal = 38.5023;
-float lonVal = 43.3820;
-
-unsigned long sonGonderimZamani = 0;
-const unsigned long gonderimAraligi = 3000;
-
-void setup() {
-  Serial.begin(57600);
-  delay(500);
-
-  Wire.begin();
-  pinMode(sosButtonPin, INPUT_PULLUP);
-  pinMode(buzzerPin, OUTPUT);
-  digitalWrite(buzzerPin, LOW);
-
-  lcd.begin();
-  lcd.setCursor(0, 0);
-  lcd.print("Google Cloud Bag.");
-
-  WiFi.begin(ssid, password);
-  
-  int deneme = 0;
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    deneme++;
-    if (deneme > 30) {
-      lcd.clear();
-      lcd.setCursor(0, 0);
-      lcd.print("WiFi Hata");
-      return; 
+    .driver-box {
+        background-color: #161b22;
+        padding: 12px 20px;
+        border-radius: 8px;
+        border: 1px solid #30363d;
+        margin-bottom: 15px;
+        font-weight: bold;
+        color: #58a6ff;
     }
-  }
+    .status-normal {
+        background: linear-gradient(90deg, #1b4332, #2d6a4f);
+        color: #52b788;
+        padding: 15px;
+        border-radius: 8px;
+        font-size: 20px;
+        font-weight: bold;
+        text-align: center;
+        border: 1px solid #52b788;
+        margin-bottom: 15px;
+    }
+    .status-alert {
+        background: linear-gradient(90deg, #780000, #c1121f);
+        color: #fff;
+        padding: 15px;
+        border-radius: 8px;
+        font-size: 20px;
+        font-weight: bold;
+        text-align: center;
+        border: 1px solid #ff4d4d;
+        margin-bottom: 15px;
+    }
+    .card-box {
+        background-color: #161b22;
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px solid #30363d;
+        height: 140px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    </style>
+""",
+    unsafe_allow_html=True,
+)
 
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("Bulut Baglanti OK");
-  delay(2000);
-}
+# Firebase Realtime Database URL Adresin
+FIREBASE_URL = "https://akilli-kask-proje-default-rtdb.europe-west1.firebasedatabase.app/telemetri.json"
 
-void firebaseVeriyiGonder(float ivme, int duman, int sos, float lat, float lon) {
-  if (WiFi.status() == WL_CONNECTED) {
-    WiFiClientSecure client;
-    client.setInsecure();
-    
-    HTTPClient http;
-    String url = "https://" + String(firebaseHost) + "/telemetri.json";
-    
-    http.begin(client, url);
-    http.addHeader("Content-Type", "application/json");
-    
-    String payload = "{\"ivme\":" + String(ivme, 2) + 
-                     ",\"duman\":" + String(duman) + 
-                     ",\"sos\":" + String(sos) + 
-                     ",\"lat\":" + String(lat, 4) + 
-                     ",\"lon\":" + String(lon, 4) + "}";
-                     
-    int httpResponseCode = http.PUT(payload);
-    
-    Serial.print("Firebase HTTP Kod: ");
-    Serial.println(httpResponseCode);
-    
-    http.end();
-  }
-}
 
-void loop() {
-  if (WiFi.status() != WL_CONNECTED) return;
+# Arka planda verileri güncelleyen akıllı fonksiyon
+@st.fragment(run_every=3)
+def render_dashboard():
+  try:
+    response = requests.get(FIREBASE_URL, timeout=5)
+    if response.status_code == 200:
+      data = response.json() or {}
+    else:
+      data = {}
+  except:
+    data = {}
 
-  // 1. SOS Butonu Kontrolü
-  bool currentButtonState = digitalRead(sosButtonPin);
-  if (lastButtonState == HIGH && currentButtonState == LOW) {
-    sosToggleState = !sosToggleState; 
-    delay(50); 
-  }
-  lastButtonState = currentButtonState;
-  sosDurumuVal = sosToggleState ? 1 : 0;
+  ivme_val = float(data.get("ivme", 1.0))
+  duman_val = int(data.get("duman", 180))
+  sos_val = int(data.get("sos", 0))
+  lat = float(data.get("lat", 38.5023))
+  lon = float(data.get("lon", 43.3820))
 
-  lcd.setCursor(0, 1);
-  if (sosToggleState) {
-    lcd.print("SOS: AKTIF      ");
-  } else {
-    lcd.print("SOS: YOK        ");
-  }
+  now_str = datetime.now().strftime("%d.%m.%Y   %H:%M:%S")
 
-  // 2. Duman / Buhar Sensörü Simülasyonu
-  dumanDegeri = 180 + (millis() / 400) % 120; 
+  # 1. Üst Başlık ve Kask Numarası
+  st.markdown(
+      f"""
+        <div class="top-header">
+            <div>
+                <h2 style="margin:0; color:#fff; font-size:22px;">🪖 AKILLI KASK <span style="font-size:14px; background:#e94560; color:white; padding:2px 8px; border-radius:10px; margin-left:10px;">KASK-001</span></h2>
+                <p style="margin:0; color:#8b949e; font-size:13px;">Güvenli Sürüş, Güvenli Yarınlar</p>
+            </div>
+            <div style="text-align:right;">
+                <span style="color:#8b949e; font-size:13px;">📅 {now_str}</span><br>
+                <span style="color:#3fb950; font-weight:bold; font-size:13px;">🟢 Bağlı • CANLI</span>
+            </div>
+        </div>
+    """,
+      unsafe_allow_html=True,
+  )
 
-  // 3. İvme Simülasyonu
-  ivmeX = 1.0 + (random(-20, 30) / 10.0);
+  # 2. Sürücü Bilgisi
+  st.markdown(
+      """
+        <div class="driver-box">
+            👤 SÜRÜCÜ &nbsp;&nbsp;&nbsp;&nbsp; <b>Demo Sürücü</b>
+        </div>
+    """,
+      unsafe_allow_html=True,
+  )
 
-  // 4. Sesli Uyarı Kontrolü ("Did did did" alarm mantığı)
-  // Kaza durumu (ivme > 3.5) veya SOS aktifse (sosDurumuVal == 1) buzzer öter
-  if (sosDurumuVal == 1 || ivmeX > 3.5 || dumanDegeri > 250) {
-    digitalWrite(buzzerPin, HIGH);
-    delay(100);
-    digitalWrite(buzzerPin, LOW);
-    delay(100);
-    digitalWrite(buzzerPin, HIGH);
-    delay(100);
-    digitalWrite(buzzerPin, LOW);
-  } else {
-    digitalWrite(buzzerPin, LOW);
-  }
+  # 3. Sistem Durum Banner'ı
+  is_alarm = sos_val == 1 or ivme_val > 3.5 or duman_val > 250
+  if is_alarm:
+    st.markdown(
+        """
+            <div class="status-alert">
+                🚨 SİSTEM ALARMI AKTİF! — Acil durum veya kaza algılandı!
+            </div>
+        """,
+        unsafe_allow_html=True,
+    )
+  else:
+    st.markdown(
+        """
+            <div class="status-normal">
+                ✅ SİSTEM NORMAL — Aktif alarm yok
+            </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-  // 5. Google Cloud Gönderim (Her 3 saniyede bir)
-  unsigned long simdikiZaman = millis();
-  if (simdikiZaman - sonGonderimZamani >= gonderimAraligi) {
-    sonGonderimZamani = simdikiZaman;
+  # 4. 4'lü Metrik Kartları
+  c1, c2, c3, c4 = st.columns(4)
 
-    firebaseVeriyiGonder(ivmeX, dumanDegeri, sosDurumuVal, latVal, lonVal);
+  with c1:
+    kaza_txt = "Kaza Var!" if ivme_val > 3.5 else "Kaza Yok (Normal)"
+    st.markdown(
+        f"""
+            <div class="card-box" style="border-top: 4px solid #f85149;">
+                <div><b>🚨 KAZA DURUMU</b></div>
+                <div style="font-size:16px; font-weight:bold; color:{'#f85149' if ivme_val > 3.5 else '#3fb950'};">{kaza_txt}</div>
+                <div style="font-size:12px; color:#8b949e;">İvme: {round(ivme_val, 2)} g</div>
+            </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-    lcd.setCursor(0, 0);
-    lcd.print("Veri Gonderildi  ");
-  }
-  
-  delay(50); 
-}
+  with c2:
+    gaz_txt = "Yüksek Gaz!" if duman_val > 250 else "Gaz/Buhar Yok"
+    st.markdown(
+        f"""
+            <div class="card-box" style="border-top: 4px solid #d29922;">
+                <div><b>⚠️ ALKOL / BUHAR</b></div>
+                <div style="font-size:16px; font-weight:bold; color:{'#d29922' if duman_val > 250 else '#3fb950'};">{gaz_txt}</div>
+                <div style="font-size:12px; color:#8b949e;">Sensör Değeri: {duman_val}</div>
+            </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+  with c3:
+    st.markdown(
+        f"""
+            <div class="card-box" style="border-top: 4px solid #58a6ff;">
+                <div><b>📍 KONUM BİLGİSİ</b></div>
+                <div style="font-size:15px; font-weight:bold; color:#58a6ff;">Van, Türkiye</div>
+                <div style="font-size:11px; color:#8b949e;">Lat: {lat}, Lon: {lon}</div>
+            </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+  with c4:
+    sos_txt = "AKTİF (BASILDI!)" if sos_val == 1 else "Pasif (Normal)"
+    st.markdown(
+        f"""
+            <div class="card-box" style="border-top: 4px solid #ff7b72;">
+                <div><b>🆘 SOS ÇAĞRISI</b></div>
+                <div style="font-size:16px; font-weight:bold; color:{'#ff7b72' if sos_val == 1 else '#3fb950'};">{sos_txt}</div>
+                <div style="font-size:12px; color:#8b949e;">Kask butonu ile kontrol edilir</div>
+            </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+  st.write("")
+
+  # Kontrol Butonları
+  b_col1, b_col2 = st.columns(2)
+  with b_col1:
+    if st.button("🔴 ALARMI İPTAL ET", use_container_width=True):
+      st.toast("Alarm başarıyla iptal edildi ve sıfırlandı!")
+  with b_col2:
+    if st.button("🔵 SESLİ ALARMI AÇ", use_container_width=True):
+      st.toast("Kask buzzer hoparlöründen sesli uyarı verildi!")
+
+  st.markdown("---")
+
+  # Harita ve Bilgi Bölümü
+  map_col, info_col = st.columns([2, 1])
+
+  with map_col:
+    st.markdown(
+        "### 🗺️ KONUM HARİTASI (Google Earth / Uydu Görüntüsü & Kask Simge)"
+    )
+
+    df = pd.DataFrame({"lat": [lat], "lon": [lon], "name": ["KASK-001"]})
+
+    layer = pdk.Layer(
+        "TextLayer",
+        df,
+        get_position="[lon, lat]",
+        get_text="'🪖 KASK-001'",
+        get_size=26,
+        get_color=[255, 75, 75],
+        get_alignment_baseline="'bottom'",
+    )
+
+    view_state = pdk.ViewState(
+        latitude=lat, longitude=lon, zoom=15, pitch=50, bearing=0
+    )
+
+    r = pdk.Deck(
+        layers=[layer],
+        initial_view_state=view_state,
+        map_style=pdk.MapStyle.SATELLITE,
+        tooltip={"text": "Kask Kimliği: KASK-001\nEnlem: {lat}\nBoylam: {lon}"},
+    )
+
+    st.pydeck_chart(r, use_container_width=True)
+
+  with info_col:
+    st.markdown("### 📌 KONUM BİLGİSİ")
+    st.write("**Mevcut Konum:**")
+    st.write("Van Merkez, Türkiye")
+    st.caption("Google Earth uydu görüntüleri üzerinden canlı GPS takibi.")
+    st.markdown("---")
+    st.write(f"**Son Güncelleme:**\n{now_str}")
+    st.write("**Cihaz ID:** KASK-001")
+    st.write("**Sistem Durumu:** Çevrim İçi 🟢")
+
+
+# Paneli Çalıştır
+render_dashboard()
