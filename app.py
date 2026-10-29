@@ -1,7 +1,6 @@
 import time
 from datetime import datetime
 import pandas as pd
-import pydeck as pdk
 import requests
 import streamlit as st
 
@@ -122,7 +121,7 @@ def render_dashboard():
     remaining = 15 - elapsed
     if remaining > 0:
       st.warning(
-          f"🚨 **KAZA TİTREŞİMİ ALGILANDI!** İptal edilmezse acil durum alarmı"
+          f"🚨 **KAZA TİTREŞİMİ ALGILANDI!** İptal edilmezse tablet alarmı"
           f" çalacak: **{remaining} saniye** kaldı!"
       )
       if st.button(
@@ -161,7 +160,7 @@ def render_dashboard():
       unsafe_allow_html=True,
   )
 
-  # Alarm Durumu (SOS aktifse veya kaza 15 sn süresini doldurduysa tablet ses çalacak)
+  # Alarm Durumu (SOS aktifse veya kaza 15 sn süresini doldurduysa tabletten ses çalar)
   alarm_durumu_aktif = (
       (sos_val == 1 or crash_active_final or duman_val > 250)
       and not st.session_state.manual_alarm_stop
@@ -171,12 +170,12 @@ def render_dashboard():
     st.markdown(
         """
             <div class="status-alert">
-                🚨 TABLET SESLİ ALARMI ÇALIYOR! — Acil durum veya kaza teyit edildi!
+                🚨 TABLET SESLİ ALARMI ÇALIYOR! — SOS veya kaza teyit edildi!
             </div>
         """,
         unsafe_allow_html=True,
     )
-    # Tabletten sürekli kesintisiz ses çalması için HTML5 Audio (Google Actions standard beep alarm)
+    # Tabletten kesintisiz ses çalması için HTML5 Audio etiketi
     st.markdown(
         """
         <audio autoplay loop>
@@ -251,7 +250,7 @@ def render_dashboard():
 
   st.write("")
 
-  # Kontrol Butonları (Alarmı İptal Et / Durdur)
+  # Kontrol Butonları (Alarmı İptal Et / Sustur)
   b_col1, b_col2 = st.columns(2)
   with b_col1:
     if st.button("🔴 ALARMI İPTAL ET / SUSTUR", use_container_width=True):
@@ -265,44 +264,21 @@ def render_dashboard():
 
   st.markdown("---")
 
-  # Harita ve Bilgi Bölümü
+  # Harita ve Bilgi Bölümü (Kararlı ve hatasız st.map entegrasyonu)
   map_col, info_col = st.columns([2, 1])
 
   with map_col:
-    st.markdown(
-        "### 🗺️ KONUM HARİTASI (Google Earth / Uydu Görüntüsü & Kask Simge)"
-    )
-
-    df = pd.DataFrame({"lat": [lat], "lon": [lon], "name": ["KASK-001"]})
-
-    layer = pdk.Layer(
-        "TextLayer",
-        df,
-        get_position="[lon, lat]",
-        get_text="'🪖 KASK-001'",
-        get_size=26,
-        get_color=[255, 75, 75],
-        get_alignment_baseline="'bottom'",
-    )
-
-    view_state = pdk.ViewState(
-        latitude=lat, longitude=lon, zoom=15, pitch=50, bearing=0
-    )
-
-    r = pdk.Deck(
-        layers=[layer],
-        initial_view_state=view_state,
-        map_style="mapbox://styles/mapbox/satellite-v9",
-        tooltip={"text": "Kask Kimliği: KASK-001\nEnlem: {lat}\nBoylam: {lon}"},
-    )
-
-    st.pydeck_chart(r, use_container_width=True)
+    st.markdown("### 🗺️ CANLI KASK KONUM HARİTASI (KASK-001)")
+    map_df = pd.DataFrame({"lat": [lat], "lon": [lon]})
+    st.map(map_df, zoom=14, use_container_width=True)
 
   with info_col:
     st.markdown("### 📌 KONUM BİLGİSİ")
     st.write("**Mevcut Konum:**")
     st.write("Van Merkez, Türkiye")
-    st.caption("Google Earth uydu görüntüleri üzerinden canlı GPS takibi.")
+    st.caption(
+        "GPS uydularından gelen anlık koordinatlar haritaya yansıtılmaktadır."
+    )
     st.markdown("---")
     st.write(f"**Son Güncelleme:**\n{now_str}")
     st.write("**Cihaz ID:** KASK-001")
