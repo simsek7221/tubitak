@@ -108,7 +108,7 @@ def render_dashboard():
   if location.get("latitude") and location.get("longitude"):
     lat = float(location["latitude"])
     lon = float(location["longitude"])
-    konum_kaynagi = "GPS Konumu / Canlı"
+    konum_kaynagi = "Tablet / Cihaz Canlı Konum"
   else:
     # Konum izni verilmediyse veya yükleniyorsa varsayılan konum
     lat, lon = 38.5023, 43.3820
@@ -240,7 +240,7 @@ def render_dashboard():
         f"""
             <div class="card-box" style="border-top: 4px solid #58a6ff;">
                 <div><b>📍 KONUM BİLGİSİ</b></div>
-                <div style="font-size:15px; font-weight:bold; color:#58a6ff;">GPS Konumu</div>
+                <div style="font-size:15px; font-weight:bold; color:#58a6ff;">Tablet Konumu</div>
                 <div style="font-size:11px; color:#8b949e;">Lat: {round(lat, 4)}, Lon: {round(lon, 4)}</div>
             </div>
         """,
@@ -276,12 +276,12 @@ def render_dashboard():
 
   st.markdown("---")
 
-  # Harita ve Bilgi Bölümü (Google Earth Uydu Görüntüsü ve Modern Motosiklet Kaskı Görseli)
+  # Harita ve Bilgi Bölümü (NASA / Uydu Görünümü ve Motosiklet Kaskı İkonu)
   map_col, info_col = st.columns([2, 1])
 
   with map_col:
     st.markdown(
-        "### 🗺️ GOOGLE EARTH UYDU HARİTASI & MOTOSİKLET KASKI İŞARETÇİSİ"
+        "### 🛰️ NASA / UYDU GÖRÜNÜMÜ & MOTOSİKLET KASKI İŞARETÇİSİ"
     )
 
     df_map = pd.DataFrame(
@@ -301,57 +301,57 @@ def render_dashboard():
         }
     )
 
-    # 1. Radar / Parlayan Çember Katmanı
+    # 1. Parlayan Radar/Çember Efekti Katmanı
     scatterplot_layer = pdk.Layer(
         "ScatterplotLayer",
         df_map,
         get_position="[lon, lat]",
-        get_color=[255, 75, 75, 200],
-        get_radius=50,
+        get_color=[0, 255, 200, 180],
+        get_radius=70,
         radius_scale=6,
-        radius_min_pixels=10,
-        radius_max_pixels=30,
-        get_line_color=[255, 255, 255],
-        get_line_width=2,
+        radius_min_pixels=12,
+        radius_max_pixels=40,
+        get_line_color=[255, 255, 255, 200],
+        get_line_width=3,
         pickable=True,
     )
 
-    # 2. Modern Motosiklet Kaskı Görsel İkonu Katmanı
+    # 2. Motosiklet Kaskı Görsel İkon Katmanı
     icon_layer = pdk.Layer(
         "IconLayer",
         df_map,
         get_position="[lon, lat]",
         get_icon="icon_data",
-        get_size=36,
+        get_size=42,
         size_scale=1,
         pickable=True,
     )
 
-    # 3. Kask Kimlik Etiketi Katmanı
+    # 3. Kask ID Etiket Katmanı
     text_layer = pdk.Layer(
         "TextLayer",
         df_map,
         get_position="[lon, lat]",
-        get_text="'KASK-001'",
-        get_size=18,
+        get_text="'🛡️ KASK-001 (Canlı)'",
+        get_size=16,
         get_color=[255, 255, 255],
-        get_background_color=[13, 17, 23, 220],
+        get_background_color=[13, 17, 23, 230],
         get_alignment_baseline="'bottom'",
-        get_pixel_offset=[0, -28],
+        get_pixel_offset=[0, -32],
     )
 
     view_state = pdk.ViewState(
-        latitude=lat, longitude=lon, zoom=16, pitch=45, bearing=0
+        latitude=lat, longitude=lon, zoom=16, pitch=50, bearing=0
     )
 
     r = pdk.Deck(
         layers=[scatterplot_layer, icon_layer, text_layer],
         initial_view_state=view_state,
-        map_style="mapbox://styles/mapbox/satellite-v9",  # Google Earth Uydu Stili
+        map_style="mapbox://styles/mapbox/satellite-v9",  # NASA/Google Earth Uydu Stili
         tooltip={
             "text": (
-                "Cihaz: KASK-001\nEnlem: {lat}\nBoylam: {lon}\nDurum: Çevrim"
-                " İçi"
+                "Cihaz: KASK-001\nEnlem: {lat}\nBoylam:"
+                " {lon}\nKoordinat Kaynağı: Canlı Tablet"
             )
         },
     )
@@ -361,7 +361,10 @@ def render_dashboard():
   with info_col:
     st.markdown("### 📌 KONUM DETAYI")
     st.write(f"**Kaynak:** {konum_kaynagi}")
-    st.caption("Google Earth uydu görüntüleri üzerinden canlı GPS takibi.")
+    st.caption(
+        "NASA / Uydu görüntüleme katmanı ve gerçek zamanlı tablet"
+        " koordinatları aktif."
+    )
     st.markdown("---")
     st.write(f"**Son Güncelleme:**\n{now_str}")
     st.write("**Cihaz ID:** KASK-001")
