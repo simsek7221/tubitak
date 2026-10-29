@@ -1,3 +1,4 @@
+import time
 from datetime import datetime
 import pandas as pd
 import pydeck as pdk
@@ -11,6 +12,14 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed",
 )
+
+# Session State Tanımlamaları (Geri sayım ve alarm durumu için)
+if "crash_start_time" not in st.session_state:
+  st.session_state.crash_start_time = None
+if "crash_cancelled" not in st.session_state:
+  st.session_state.crash_cancelled = False
+if "manual_alarm_stop" not in st.session_state:
+  st.session_state.manual_alarm_stop = False
 
 # Arayüz Tasarım Stilleri (CSS)
 st.markdown(
@@ -97,6 +106,34 @@ def render_dashboard():
 
   now_str = datetime.now().strftime("%d.%m.%Y   %H:%M:%S")
 
+  # Kaza Algılama Kontrolü ve 15 Saniye Geri Sayım Mantığı
+  is_crash_detected = ivme_val > 3.5
+  if is_crash_detected and not st.session_state.crash_cancelled:
+    if st.session_state.crash_start_time is None:
+      st.session_state.crash_start_time = time.time()
+  elif not is_crash_detected:
+    st.session_state.crash_start_time = None
+    st.session_state.crash_cancelled = False
+
+  # Geri Sayım Hesaplama
+  crash_active_final = False
+  if st.session_state.crash_start_time is not None and not st.session_state.crash_cancelled:
+    elapsed = int(time.time() - st.session_state.crash_start_time)
+    remaining = 15 - elapsed
+    if remaining > 0:
+      st.warning(
+          f"🚨 **KAZA TİTREŞİMİ ALGILANDI!** İptal edilmezse acil durum alarmı"
+          f" çalacak: **{remaining} saniye** kaldı!"
+      )
+      if st.button(
+          "🛡️ KAZAYI İPTAL ET (YANLIŞ ALARM)", use_container_width=True
+      ):
+        st.session_state.crash_cancelled = True
+        st.session_state.crash_start_time = None
+        st.rerun()
+    else:
+      crash_active_final = True
+
   # 1. Üst Başlık ve Kask Numarası
   st.markdown(
       f"""
@@ -124,14 +161,27 @@ def render_dashboard():
       unsafe_allow_html=True,
   )
 
-  # 3. Sistem Durum Banner'ı
-  is_alarm = sos_val == 1 or ivme_val > 3.5 or duman_val > 250
-  if is_alarm:
+  # Alarm Durumu (SOS aktifse veya kaza 15 sn süresini doldurduysa tablet ses çalacak)
+  alarm_durumu_aktif = (
+      (sos_val == 1 or crash_active_final or duman_val > 250)
+      and not st.session_state.manual_alarm_stop
+  )
+
+  if alarm_durumu_aktif:
     st.markdown(
         """
             <div class="status-alert">
-                🚨 SİSTEM ALARMI AKTİF! — Acil durum veya kaza algılandı!
+                🚨 TABLET SESLİ ALARMI ÇALIYOR! — Acil durum veya kaza teyit edildi!
             </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    # Tabletten sürekli kesintisiz ses çalması için HTML5 Audio (Google Actions standard beep alarm)
+    st.markdown(
+        """
+        <audio autoplay loop>
+          <source src="https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg" type="audio/ogg">
+        </audio>
         """,
         unsafe_allow_html=True,
     )
@@ -149,12 +199,12 @@ def render_dashboard():
   c1, c2, c3, c4 = st.columns(4)
 
   with c1:
-    kaza_txt = "Kaza Var!" if ivme_val > 3.5 else "Kaza Yok (Normal)"
+    kaza_txt = "Kaza Var!" if is_crash_detected else "Kaza Yok (Normal)"
     st.markdown(
         f"""
             <div class="card-box" style="border-top: 4px solid #f85149;">
                 <div><b>🚨 KAZA DURUMU</b></div>
-                <div style="font-size:16px; font-weight:bold; color:{'#f85149' if ivme_val > 3.5 else '#3fb950'};">{kaza_txt}</div>
+                <div style="font-size:16px; font-weight:bold; color:{'#f85149' if is_crash_detected else '#3fb950'};">{kaza_txt}</div>
                 <div style="font-size:12px; color:#8b949e;">İvme: {round(ivme_val, 2)} g</div>
             </div>
         """,
@@ -201,14 +251,17 @@ def render_dashboard():
 
   st.write("")
 
-  # Kontrol Butonları
+  # Kontrol Butonları (Alarmı İptal Et / Durdur)
   b_col1, b_col2 = st.columns(2)
   with b_col1:
-    if st.button("🔴 ALARMI İPTAL ET", use_container_width=True):
-      st.toast("Alarm başarıyla iptal edildi ve sıfırlandı!")
+    if st.button("🔴 ALARMI İPTAL ET / SUSTUR", use_container_width=True):
+      st.session_state.manual_alarm_stop = True
+      st.session_state.crash_cancelled = True
+      st.toast("Tablet alarmı susturuldu ve durum sıfırlandı!")
   with b_col2:
-    if st.button("🔵 SESLİ ALARMI AÇ", use_container_width=True):
-      st.toast("Kask buzzer hoparlöründen sesli uyarı verildi!")
+    if st.button("🔵 ALARMI TEKRAR AKTİFLEŞTİR", use_container_width=True):
+      st.session_state.manual_alarm_stop = False
+      st.toast("Alarm izleme modu yeniden açıldı.")
 
   st.markdown("---")
 
