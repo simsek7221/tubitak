@@ -280,7 +280,7 @@ def render_dashboard():
 
   with map_col:
     st.markdown(
-        "### 🗺️ CANLI TABLET KONUM HARİTASI (KASK-001)"
+        "### 🗺️ CANLI GPS KONUM HARİTASI (KASK-001)"
     )
     map_df = pd.DataFrame({"lat": [lat], "lon": [lon]})
     st.map(map_df, zoom=15, use_container_width=True)
@@ -289,7 +289,7 @@ def render_dashboard():
     st.markdown("### 📌 KONUM DETAYI")
     st.write(f"**Kaynak:** {konum_kaynagi}")
     st.caption(
-        "Tablet/cihaz tarayıcı konum servisleri kullanılarak harita güncellenmektedir."
+        "GPS kullanılarak harita güncellenmektedir."
     )
     st.markdown("---")
     st.write(f"**Son Güncelleme:**\n{now_str}")
