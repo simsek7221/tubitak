@@ -9,64 +9,63 @@ st.set_page_config(
 )
 
 st.title("🪖 TÜBİTAK Akıllı Kask Paneli")
-st.write(
-    "Deneyap Kart V2 üzerinden gelen anlık veriler ve canlı GPS harita"
-    " takibi."
-)
+st.write("ThingSpeak Bulut Üzerinden Canlı Veri ve Durum Takibi")
 
-# Kartımızın tarayıcıda doğruladığımız gerçek IP adresi
-ESP32_IP = "192.168.1.187"
+# ThingSpeak Kanal ID'nizi buraya yazın (Örn: "1234567")
+CHANNEL_ID = "3558172"
 
 # Arayüz Konteyneri
 placeholder = st.empty()
 
 
-def verileri_al():
+def thingspeak_verilerini_al():
   try:
-    response = requests.get(f"http://{ESP32_IP}/veri", timeout=2)
+    url = f"https://api.thingspeak.com/channels/{CHANNEL_ID}/feeds.json?results=1"
+    response = requests.get(url, timeout=5)
     if response.status_code == 200:
-      return response.json()
-  except:
+      data = response.json()
+      feeds = data.get("feeds")
+      if feeds:
+        latest = feeds[0]
+        return {
+            "ivme": float(latest.get("field1", 0) or 0),
+            "duman": int(float(latest.get("field2", 0) or 0)),
+            "sos": int(float(latest.get("field3", 0) or 0)),
+        }
+  except Exception as e:
     return None
   return None
 
 
 # Canlı Akış Döngüsü
 while True:
-  data = verileri_al()
+  data = thingspeak_verilerini_al()
 
   with placeholder.container():
     if data:
       # Metrik Kartları
       col1, col2, col3 = st.columns(3)
       col1.metric("İvme (X)", f"{data['ivme']} g")
-      col2.metric("Sensör", data["sensor"])
-      col3.metric("Kaza Durumu", data["kaza"])
+      col2.metric("Duman / Gaz", data["duman"])
 
-      col4, col5, col6 = st.columns(3)
-      col4.metric("SOS Durumu", data["sos"])
-      col5.metric("Duman / Gaz", data["duman"])
-      col6.metric("Eşik", data["esik"])
+      sos_durum_str = "BASILDI!" if data["sos"] == 1 else "YOK"
+      col3.metric("SOS Durumu", sos_durum_str)
 
       # SOS Acil Durum Uyarısı
-      if data["sos"] == "BASILDI!":
+      if data["sos"] == 1:
         st.error(
             "🚨 KRİTİK UYARI: Kask kullanıcısı SOS butonuna bastı! Acil durum"
             " aktif!"
         )
-
-      # Streamlit Yerleşik Gerçek Harita Bileşeni (GPS)
-      st.subheader("📍 Canlı GPS Konum Haritası")
-      df_map = pd.DataFrame(
-          [[data["lat"], data["lng"]]], columns=["lat", "lon"]
-      )
-      st.map(df_map, zoom=15)
+      else:
+        st.success("Sistem Durumu: Normal")
 
     else:
       st.warning(
-          f"Karttan veri alınamadı! Lütfen ESP32 IP adresini ({ESP32_IP}) ve"
-          " Wi-Fi bağlantısını kontrol edin."
+          "Buluttan henüz veri alınamadı. Deneyap Kart'ın veri göndermesini"
+          " bekliyor veya Channel ID'yi kontrol edin."
       )
 
-  time.sleep(2)
+  # ThingSpeak ücretsiz sürümü saniyede çok fazla istek istemez (15 saniye önerilir)
+  time.sleep(15)
   st.rerun()
