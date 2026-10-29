@@ -22,7 +22,7 @@ if "crash_cancelled" not in st.session_state:
 if "manual_alarm_stop" not in st.session_state:
   st.session_state.manual_alarm_stop = False
 
-# Ultra Modern / Endüstriyel HUD Tasarım Stilleri (Normal String - Hata Önleyici)
+# Ultra Modern / Endüstriyel HUD Tasarım Stilleri (CSS)
 st.markdown(
     """
     <style>
@@ -80,12 +80,6 @@ st.markdown(
         border: 1px solid #dc2626;
         margin-bottom: 16px;
         box-shadow: 0 0 30px rgba(220, 38, 38, 0.5);
-        animation: pulse-alert 1.5s infinite;
-    }
-    @keyframes pulse-alert {
-        0% { box-shadow: 0 0 15px rgba(220, 38, 38, 0.4); }
-        50% { box-shadow: 0 0 35px rgba(220, 38, 38, 0.8); }
-        100% { box-shadow: 0 0 15px rgba(220, 38, 38, 0.4); }
     }
     .card-box {
         background: rgba(15, 23, 42, 0.7);
@@ -123,8 +117,8 @@ st.markdown(
 FIREBASE_URL = "https://akilli-kask-proje-default-rtdb.europe-west1.firebasedatabase.app/telemetri.json"
 
 
-# Arka Planda Veri Yenileme (Fragment)
-@st.fragment(run_every=3)
+# Arka Planda 2 Saniyede Bir Otomatik Yenilenen Canlı Akış (Fragment)
+@st.fragment(run_every=2)
 def render_dashboard():
   try:
     response = requests.get(FIREBASE_URL, timeout=5)
@@ -139,19 +133,19 @@ def render_dashboard():
   duman_val = int(data.get("duman", 180))
   sos_val = int(data.get("sos", 0))
 
-  # Canlı GPS Konum Bilgisi
+  # Otomatik ve Canlı GPS Konum Tespiti (Tuş Yok, Doğrudan Okuma)
   location = streamlit_geolocation()
   if location.get("latitude") and location.get("longitude"):
     lat = float(location["latitude"])
     lon = float(location["longitude"])
-    konum_baslik = "GPS Kilitlendi"
-    konum_alt_metin = "Uydu / Ağ Konumu Aktif"
+    konum_baslik = "GPS Kilitlendi (Canlı)"
+    konum_alt_metin = "Konum anlık güncelleniyor"
     konum_kaynagi = "Canlı GPS Koordinatı"
   else:
-    lat, lon = 38.5023, 43.3820  # Van Merkez Referans Konumu
-    konum_baslik = "GPS Aranıyor..."
-    konum_alt_metin = "Uydu sinyali bekleniyor."
-    konum_kaynagi = "GPS Bekleniyor (Harita Temsilidir)"
+    lat, lon = 38.5023, 43.3820  # İzin verilene kadar veya sinyal beklerken referans konum
+    konum_baslik = "GPS Sinyali Bekleniyor..."
+    konum_alt_metin = "Tarayıcı konum iznini kontrol edin"
+    konum_kaynagi = "GPS Bekleniyor"
 
   now_str = datetime.now().strftime("%d.%m.%Y   %H:%M:%S")
 
@@ -279,8 +273,8 @@ def render_dashboard():
         f"""
             <div class="card-box" style="border-top: 4px solid #38bdf8;">
                 <div><span style="font-size:16px;">📍</span> <b style="color:#e2e8f0; font-size:13px;">GPS KONUMU</b></div>
-                <div style="font-size:16px; font-weight:800; color:#ffffff;">{konum_baslik}</div>
-                <div style="font-size:10px; color:#94a3b8; line-height:1.2;">{konum_alt_metin}<br>Lat: {round(lat, 4)} | Lon: {round(lon, 4)}</div>
+                <div style="font-size:15px; font-weight:800; color:#ffffff;">{konum_baslik}</div>
+                <div style="font-size:10px; color:#94a3b8; line-height:1.2;">Lat: {round(lat, 4)} | Lon: {round(lon, 4)}</div>
             </div>
         """,
         unsafe_allow_html=True,
@@ -315,16 +309,16 @@ def render_dashboard():
 
   st.markdown("---")
 
-  # Harita ve Yan Bilgi Paneli (Modern GPS & Kask Simgesi)
+  # Harita ve Yan Bilgi Paneli (Canlı GPS ve Modern Kask Simgesi)
   map_col, info_col = st.columns([2.3, 1])
 
   with map_col:
-    st.markdown("### 🛰️ UYDU GPS TAKİP HARİTASI (KASK-001)")
+    st.markdown("### 🛰️ CANLI UYDU GPS TAKİP HARİTASI (KASK-001)")
 
-    # Folium Haritası
+    # Folium Haritası (Anlık koordinata odaklı)
     m = folium.Map(
         location=[lat, lon],
-        zoom_start=15,
+        zoom_start=16,
         tiles=None,
         control_scale=True,
     )
@@ -339,7 +333,7 @@ def render_dashboard():
     ).add_to(m)
 
     # MODERN MOTOSİKLET KASKI ÖZEL HTML / HUD MARKER
-    helmet_icon_html = f"""
+    helmet_icon_html = """
     <div style="
         position: relative;
         display: flex;
@@ -390,11 +384,11 @@ def render_dashboard():
     </div>
     
     <style>
-    @keyframes pulse-ring {{
-        0% {{ transform: scale(0.95); opacity: 0.8; }}
-        50% {{ transform: scale(1.35); opacity: 0.2; }}
-        100% {{ transform: scale(0.95); opacity: 0.8; }}
-    }}
+    @keyframes pulse-ring {
+        0% { transform: scale(0.95); opacity: 0.8; }
+        50% { transform: scale(1.35); opacity: 0.2; }
+        100% { transform: scale(0.95); opacity: 0.8; }
+    }
     </style>
     """
 
@@ -409,10 +403,10 @@ def render_dashboard():
     st_folium(m, height=410, use_container_width=True)
 
     st.markdown(
-        """
+        f"""
         <div class="map-footer-banner">
-            <span>🛰️ UYDU GPS KONUMU AKTİF</span>
-            <span>ENLEM: 38.5023° N | BOYLAM: 43.3820° E</span>
+            <span>🛰️ {konum_kaynagi.upper()}</span>
+            <span>ENLEM: {round(lat, 4)}° N | BOYLAM: {round(lon, 4)}° E</span>
         </div>
     """,
         unsafe_allow_html=True,
@@ -425,7 +419,7 @@ def render_dashboard():
         <div style="background: rgba(15, 23, 42, 0.6); padding: 14px; border-radius: 10px; border: 1px solid #1e293b; font-size: 13px;">
             <p style="margin-bottom:8px;"><b>Bağlantı Protokolü:</b> Firebase Realtime DB</p>
             <p style="margin-bottom:8px;"><b>Donanım Birimi:</b> Deneyap Kart V2 (ESP32)</p>
-            <p style="margin-bottom:8px;"><b>Konum Servisi:</b> Tarayıcı / Cihaz GPS</p>
+            <p style="margin-bottom:8px;"><b>Konum Servisi:</b> Otomatik Canlı GPS</p>
             <p style="margin-bottom:0;"><b>Güvenlik Modu:</b> Aktif Koruma 🟢</p>
         </div>
     """,
