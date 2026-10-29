@@ -1,6 +1,7 @@
 import time
 from datetime import datetime
 import pandas as pd
+import pydeck as pdk
 import requests
 import streamlit as st
 from streamlit_geolocation import streamlit_geolocation
@@ -175,7 +176,7 @@ def render_dashboard():
 
   # Alarm Durumu (SOS aktifse veya kaza 15 sn süresini doldurduysa tabletten ses çalar)
   alarm_durumu_aktif = (
-      sos_val == 1 or crash_active_final or duman_val > 250
+      sos_val == 1 or crash_active_final or duman_val > 350
   ) and not st.session_state.manual_alarm_stop
 
   if alarm_durumu_aktif:
@@ -275,22 +276,92 @@ def render_dashboard():
 
   st.markdown("---")
 
-  # Harita ve Bilgi Bölümü (Tablet konumuna odaklı canlı harita)
+  # Harita ve Bilgi Bölümü (Google Earth Uydu Görüntüsü ve Modern Motosiklet Kaskı Görseli)
   map_col, info_col = st.columns([2, 1])
 
   with map_col:
     st.markdown(
-        "### 🗺️ CANLI GPS KONUM HARİTASI (KASK-001)"
+        "### 🗺️ GOOGLE EARTH UYDU HARİTASI & MOTOSİKLET KASKI İŞARETÇİSİ"
     )
-    map_df = pd.DataFrame({"lat": [lat], "lon": [lon]})
-    st.map(map_df, zoom=15, use_container_width=True)
+
+    df_map = pd.DataFrame(
+        {
+            "lat": [lat],
+            "lon": [lon],
+            "icon_data": [
+                {
+                    "url": (
+                        "https://cdn-icons-png.flaticon.com/512/2965/2965352.png"
+                    ),
+                    "width": 128,
+                    "height": 128,
+                    "anchorY": 128,
+                }
+            ],
+        }
+    )
+
+    # 1. Radar / Parlayan Çember Katmanı
+    scatterplot_layer = pdk.Layer(
+        "ScatterplotLayer",
+        df_map,
+        get_position="[lon, lat]",
+        get_color=[255, 75, 75, 200],
+        get_radius=50,
+        radius_scale=6,
+        radius_min_pixels=10,
+        radius_max_pixels=30,
+        get_line_color=[255, 255, 255],
+        get_line_width=2,
+        pickable=True,
+    )
+
+    # 2. Modern Motosiklet Kaskı Görsel İkonu Katmanı
+    icon_layer = pdk.Layer(
+        "IconLayer",
+        df_map,
+        get_position="[lon, lat]",
+        get_icon="icon_data",
+        get_size=36,
+        size_scale=1,
+        pickable=True,
+    )
+
+    # 3. Kask Kimlik Etiketi Katmanı
+    text_layer = pdk.Layer(
+        "TextLayer",
+        df_map,
+        get_position="[lon, lat]",
+        get_text="'KASK-001'",
+        get_size=18,
+        get_color=[255, 255, 255],
+        get_background_color=[13, 17, 23, 220],
+        get_alignment_baseline="'bottom'",
+        get_pixel_offset=[0, -28],
+    )
+
+    view_state = pdk.ViewState(
+        latitude=lat, longitude=lon, zoom=16, pitch=45, bearing=0
+    )
+
+    r = pdk.Deck(
+        layers=[scatterplot_layer, icon_layer, text_layer],
+        initial_view_state=view_state,
+        map_style="mapbox://styles/mapbox/satellite-v9",  # Google Earth Uydu Stili
+        tooltip={
+            "text": (
+                "Cihaz: KASK-001\nEnlem: {lat}\nBoylam: {lon}\nDurum: Çevrim"
+                " İçi"
+            )
+        },
+    )
+
+    st.pydeck_chart(r, use_container_width=True)
 
   with info_col:
     st.markdown("### 📌 KONUM DETAYI")
     st.write(f"**Kaynak:** {konum_kaynagi}")
-    st.caption(
-        "GPS kullanılarak harita güncellenmektedir."
-    )
+    st.caption("Google Earth uydu görüntüleri üzerinden canlı GPS takibi.")
     st.markdown("---")
     st.write(f"**Son Güncelleme:**\n{now_str}")
     st.write("**Cihaz ID:** KASK-001")
