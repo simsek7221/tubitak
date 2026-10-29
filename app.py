@@ -3,6 +3,7 @@ from datetime import datetime
 import pandas as pd
 import requests
 import streamlit as st
+from streamlit_geolocation import streamlit_geolocation
 
 # Sayfa Yapılandırması
 st.set_page_config(
@@ -100,8 +101,17 @@ def render_dashboard():
   ivme_val = float(data.get("ivme", 1.0))
   duman_val = int(data.get("duman", 180))
   sos_val = int(data.get("sos", 0))
-  lat = float(data.get("lat", 38.5023))
-  lon = float(data.get("lon", 43.3820))
+
+  # Tabletin / Tarayıcının Gerçek Konum Bilgisini Alıyoruz
+  location = streamlit_geolocation()
+  if location.get("latitude") and location.get("longitude"):
+    lat = float(location["latitude"])
+    lon = float(location["longitude"])
+    konum_kaynagi = "Tablet / Cihaz Konumu (Canlı)"
+  else:
+    # Konum izni verilmediyse veya yükleniyorsa varsayılan konum
+    lat, lon = 38.5023, 43.3820
+    konum_kaynagi = "Varsayılan Konum (İzin Bekleniyor)"
 
   now_str = datetime.now().strftime("%d.%m.%Y   %H:%M:%S")
 
@@ -116,7 +126,10 @@ def render_dashboard():
 
   # Geri Sayım Hesaplama
   crash_active_final = False
-  if st.session_state.crash_start_time is not None and not st.session_state.crash_cancelled:
+  if (
+      st.session_state.crash_start_time is not None
+      and not st.session_state.crash_cancelled
+  ):
     elapsed = int(time.time() - st.session_state.crash_start_time)
     remaining = 15 - elapsed
     if remaining > 0:
@@ -162,9 +175,8 @@ def render_dashboard():
 
   # Alarm Durumu (SOS aktifse veya kaza 15 sn süresini doldurduysa tabletten ses çalar)
   alarm_durumu_aktif = (
-      (sos_val == 1 or crash_active_final or duman_val > 250)
-      and not st.session_state.manual_alarm_stop
-  )
+      sos_val == 1 or crash_active_final or duman_val > 250
+  ) and not st.session_state.manual_alarm_stop
 
   if alarm_durumu_aktif:
     st.markdown(
@@ -175,7 +187,6 @@ def render_dashboard():
         """,
         unsafe_allow_html=True,
     )
-    # Tabletten kesintisiz ses çalması için HTML5 Audio etiketi
     st.markdown(
         """
         <audio autoplay loop>
@@ -228,8 +239,8 @@ def render_dashboard():
         f"""
             <div class="card-box" style="border-top: 4px solid #58a6ff;">
                 <div><b>📍 KONUM BİLGİSİ</b></div>
-                <div style="font-size:15px; font-weight:bold; color:#58a6ff;">Van, Türkiye</div>
-                <div style="font-size:11px; color:#8b949e;">Lat: {lat}, Lon: {lon}</div>
+                <div style="font-size:15px; font-weight:bold; color:#58a6ff;">Tablet Konumu</div>
+                <div style="font-size:11px; color:#8b949e;">Lat: {round(lat, 4)}, Lon: {round(lon, 4)}</div>
             </div>
         """,
         unsafe_allow_html=True,
@@ -264,20 +275,21 @@ def render_dashboard():
 
   st.markdown("---")
 
-  # Harita ve Bilgi Bölümü (Kararlı ve hatasız st.map entegrasyonu)
+  # Harita ve Bilgi Bölümü (Tablet konumuna odaklı canlı harita)
   map_col, info_col = st.columns([2, 1])
 
   with map_col:
-    st.markdown("### 🗺️ CANLI KASK KONUM HARİTASI (KASK-001)")
+    st.markdown(
+        "### 🗺️ CANLI TABLET KONUM HARİTASI (KASK-001)"
+    )
     map_df = pd.DataFrame({"lat": [lat], "lon": [lon]})
-    st.map(map_df, zoom=14, use_container_width=True)
+    st.map(map_df, zoom=15, use_container_width=True)
 
   with info_col:
-    st.markdown("### 📌 KONUM BİLGİSİ")
-    st.write("**Mevcut Konum:**")
-    st.write("Van Merkez, Türkiye")
+    st.markdown("### 📌 KONUM DETAYI")
+    st.write(f"**Kaynak:** {konum_kaynagi}")
     st.caption(
-        "GPS uydularından gelen anlık koordinatlar haritaya yansıtılmaktadır."
+        "Tablet/cihaz tarayıcı konum servisleri kullanılarak harita güncellenmektedir."
     )
     st.markdown("---")
     st.write(f"**Son Güncelleme:**\n{now_str}")
