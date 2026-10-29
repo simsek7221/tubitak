@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# Session State Tanımlamaları (Geri sayım ve alarm durumu için)
+# Session State Tanımlamaları
 if "crash_start_time" not in st.session_state:
   st.session_state.crash_start_time = None
 if "crash_cancelled" not in st.session_state:
@@ -110,7 +110,7 @@ def render_dashboard():
     lon = float(location["longitude"])
     konum_kaynagi = "Tablet / Cihaz Canlı Konum"
   else:
-    # Konum izni verilmediyse veya yükleniyorsa varsayılan konum
+    # Konum izni verilmediyse veya yükleniyorsa varsayılan konum (Van Merkez)
     lat, lon = 38.5023, 43.3820
     konum_kaynagi = "Varsayılan Konum (İzin Bekleniyor)"
 
@@ -276,12 +276,12 @@ def render_dashboard():
 
   st.markdown("---")
 
-  # Harita ve Bilgi Bölümü (NASA / Uydu Görünümü ve Motosiklet Kaskı İkonu)
+  # Harita ve Bilgi Bölümü (Ücretsiz Gerçek Uydu Görüntüsü ve Motosiklet Kaskı İkonu)
   map_col, info_col = st.columns([2, 1])
 
   with map_col:
     st.markdown(
-        "### 🛰️ NASA / UYDU GÖRÜNÜMÜ & MOTOSİKLET KASKI İŞARETÇİSİ"
+        "### 🛰️ GOOGLE EARTH UYDU GÖRÜNÜMÜ & MOTOSİKLET KASKI İŞARETÇİSİ"
     )
 
     df_map = pd.DataFrame(
@@ -301,7 +301,16 @@ def render_dashboard():
         }
     )
 
-    # 1. Parlayan Radar/Çember Efekti Katmanı
+    # 1. Token Gerektirmeyen Gerçek Uydu Katmanı (ESRI World Imagery)
+    tile_layer = pdk.Layer(
+        "TileLayer",
+        data="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        min_zoom=0,
+        max_zoom=19,
+        tileSize=256,
+    )
+
+    # 2. Parlayan Radar/Çember Efekti Katmanı
     scatterplot_layer = pdk.Layer(
         "ScatterplotLayer",
         df_map,
@@ -316,7 +325,7 @@ def render_dashboard():
         pickable=True,
     )
 
-    # 2. Motosiklet Kaskı Görsel İkon Katmanı
+    # 3. Motosiklet Kaskı Görsel İkon Katmanı
     icon_layer = pdk.Layer(
         "IconLayer",
         df_map,
@@ -327,7 +336,7 @@ def render_dashboard():
         pickable=True,
     )
 
-    # 3. Kask ID Etiket Katmanı
+    # 4. Kask ID Etiket Katmanı
     text_layer = pdk.Layer(
         "TextLayer",
         df_map,
@@ -345,9 +354,9 @@ def render_dashboard():
     )
 
     r = pdk.Deck(
-        layers=[scatterplot_layer, icon_layer, text_layer],
+        layers=[tile_layer, scatterplot_layer, icon_layer, text_layer],
         initial_view_state=view_state,
-        map_style="mapbox://styles/mapbox/satellite-v9",  # NASA/Google Earth Uydu Stili
+        map_style=None,  # TileLayer kullanıldığı içinharita stili harici çağrılmaz
         tooltip={
             "text": (
                 "Cihaz: KASK-001\nEnlem: {lat}\nBoylam:"
@@ -362,7 +371,7 @@ def render_dashboard():
     st.markdown("### 📌 KONUM DETAYI")
     st.write(f"**Kaynak:** {konum_kaynagi}")
     st.caption(
-        "NASA / Uydu görüntüleme katmanı ve gerçek zamanlı tablet"
+        "Google Earth kalitesinde uydu katmanı ve gerçek zamanlı tablet"
         " koordinatları aktif."
     )
     st.markdown("---")
