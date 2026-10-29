@@ -12,7 +12,7 @@ st.title("🪖 TÜBİTAK Akıllı Kask Paneli")
 st.write("Adafruit IO Üzerinden Gerçek Zamanlı Canlı Takip")
 
 AIO_USERNAME = "ismail7221"
-AIO_KEY = "aio_HGCy84NBxYGFRePy3WlUZRmduInb"
+AIO_KEY = "aio_sCFu71Nf0kVu0JtMC04obeJJvCVz"
 
 headers = {"X-AIO-Key": AIO_KEY}
 placeholder = st.empty()
