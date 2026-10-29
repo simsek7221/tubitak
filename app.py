@@ -166,7 +166,7 @@ void loop() {
     digitalWrite(buzzerPin, LOW);
   }
 
-  // 5. Google Cloud'a Gönderim (Her 3 saniyede bir)
+  // 5. Google Cloud Gönderim (Her 3 saniyede bir)
   unsigned long simdikiZaman = millis();
   if (simdikiZaman - sonGonderimZamani >= gonderimAraligi) {
     sonGonderimZamani = simdikiZaman;
