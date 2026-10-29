@@ -7,7 +7,7 @@ from streamlit_folium import st_folium
 from streamlit_geolocation import streamlit_geolocation
 
 # ==========================================
-# 1. SAYFA YAPILANDIRMASI VE GENEL AYARLAR
+# 1. SAYFA YAPILANDIRMASI
 # ==========================================
 st.set_page_config(
     page_title="Akıllı Kask | Endüstriyel Telemetri Paneli",
@@ -16,7 +16,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# Oturum Durumu (Session State) Tanımlamaları
+# Oturum Durumu Tanımlamaları
 if "crash_start_time" not in st.session_state:
   st.session_state.crash_start_time = None
 if "crash_cancelled" not in st.session_state:
@@ -25,113 +25,113 @@ if "manual_alarm_stop" not in st.session_state:
   st.session_state.manual_alarm_stop = False
 
 # ==========================================
-# 2. ULTRA MODERN KASK HUD TASARIM STİLLERİ (CSS)
+# 2. ULTRA PARLAK & CANLI HUD STİLLERİ (CSS)
 # ==========================================
 st.markdown(
     """
     <style>
-    /* Genel Arka Plan ve Tipografi */
+    /* Derin ve Zengin Siyah/Lacivert Arka Plan */
     .stApp { 
-        background-color: #030712; 
-        color: #f3f4f6; 
+        background-color: #050811; 
+        color: #ffffff; 
         font-family: 'Segoe UI', Roboto, Helvetica, sans-serif;
     }
     
-    /* Üst Başlık Konsolu */
+    /* Üst Başlık Konsolu (Parlak Gradyan ve Neon Çerçeve) */
     .top-header {
-        background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
-        padding: 16px 24px;
+        background: linear-gradient(135deg, #0d1b2a 0%, #1b263b 100%);
+        padding: 18px 24px;
         border-radius: 12px;
-        border: 1px solid #312e81;
+        border: 1px solid #415a77;
         display: flex;
         justify-content: space-between;
         align-items: center;
         margin-bottom: 16px;
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.7);
+        box-shadow: 0 0 25px rgba(65, 90, 119, 0.4);
     }
     
     /* Sürücü Bilgi Paneli */
     .driver-box {
-        background: rgba(15, 23, 42, 0.8);
+        background: rgba(13, 27, 42, 0.9);
         backdrop-filter: blur(12px);
-        padding: 12px 20px;
+        padding: 14px 20px;
         border-radius: 10px;
-        border: 1px solid #1e293b;
+        border: 1px solid #415a77;
         margin-bottom: 16px;
-        font-weight: 600;
-        color: #38bdf8;
+        font-weight: 700;
+        color: #00b4d8;
         display: flex;
         align-items: center;
         gap: 10px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.5);
     }
     
-    /* Sistem Normal Durumu (Neon Yeşil) */
+    /* Sistem Normal Durumu (Ultra Canlı Neon Yeşil) */
     .status-normal {
-        background: linear-gradient(135deg, rgba(6, 78, 59, 0.8), rgba(4, 47, 46, 0.9));
-        backdrop-filter: blur(12px);
+        background: linear-gradient(135deg, #064e3b 0%, #022c22 100%);
         color: #34d399;
         padding: 16px;
         border-radius: 12px;
-        font-size: 20px;
-        font-weight: 700;
+        font-size: 21px;
+        font-weight: 800;
         text-align: center;
-        border: 1px solid #059669;
+        border: 2px solid #10b981;
         margin-bottom: 16px;
-        box-shadow: 0 0 20px rgba(52, 211, 153, 0.15);
+        box-shadow: 0 0 25px rgba(16, 185, 129, 0.4);
+        text-shadow: 0 0 10px rgba(52, 211, 153, 0.5);
     }
     
-    /* Kritik Alarm Durumu (Parlayan Kırmızı HUD) */
+    /* Kritik Alarm Durumu (Parlayan Agresif Kırmızı) */
     .status-alert {
-        background: linear-gradient(135deg, rgba(127, 29, 29, 0.9), rgba(153, 27, 27, 0.9));
-        backdrop-filter: blur(12px);
+        background: linear-gradient(135deg, #7f1d1d 0%, #450a0a 100%);
         color: #ffffff;
         padding: 16px;
         border-radius: 12px;
-        font-size: 20px;
-        font-weight: 700;
+        font-size: 21px;
+        font-weight: 800;
         text-align: center;
-        border: 1px solid #dc2626;
+        border: 2px solid #ef4444;
         margin-bottom: 16px;
-        box-shadow: 0 0 30px rgba(220, 38, 38, 0.5);
-        animation: pulse-alert 1.5s infinite;
+        box-shadow: 0 0 35px rgba(239, 68, 68, 0.7);
+        animation: pulse-alert 1.2s infinite;
     }
     
     @keyframes pulse-alert {
-        0% { box-shadow: 0 0 15px rgba(220, 38, 38, 0.4); }
-        50% { box-shadow: 0 0 35px rgba(220, 38, 38, 0.8); }
-        100% { box-shadow: 0 0 15px rgba(220, 38, 38, 0.4); }
+        0% { box-shadow: 0 0 20px rgba(239, 68, 68, 0.5); }
+        50% { box-shadow: 0 0 45px rgba(239, 68, 68, 0.9); }
+        100% { box-shadow: 0 0 20px rgba(239, 68, 68, 0.5); }
     }
 
-    /* Metrik Kartları (Glassmorphism) */
+    /* Metrik Kartları (Yüksek Kontrastlı Cam Efekti) */
     .card-box {
-        background: rgba(15, 23, 42, 0.7);
-        backdrop-filter: blur(10px);
+        background: rgba(13, 27, 42, 0.85);
+        backdrop-filter: blur(12px);
         padding: 16px;
         border-radius: 12px;
-        border: 1px solid #1e293b;
-        height: 155px;
+        border: 1px solid #1b263b;
+        height: 160px;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
-        box-shadow: 0 8px 20px rgba(0,0,0,0.4);
-        transition: transform 0.2s ease;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.6);
+        transition: all 0.3s ease;
     }
     .card-box:hover {
-        border-color: #475569;
+        border-color: #00b4d8;
+        box-shadow: 0 0 20px rgba(0, 180, 216, 0.3);
     }
     
     /* Harita Alt Bilgi Bandı */
     .map-footer-banner {
-        background: rgba(3, 7, 18, 0.9);
-        color: #94a3b8;
+        background: #050811;
+        color: #38bdf8;
         padding: 8px 14px;
         font-size: 11px;
-        font-weight: 700;
+        font-weight: 800;
         letter-spacing: 1px;
         border-bottom-left-radius: 12px;
         border-bottom-right-radius: 12px;
-        border: 1px solid #1e293b;
+        border: 1px solid #1b263b;
         border-top: none;
         display: flex;
         justify-content: space-between;
@@ -174,9 +174,9 @@ def render_dashboard():
     konum_alt_metin = "Anlık Uydu Takibi Aktif"
     konum_kaynagi = "Canlı GPS Koordinatı"
   else:
-    lat, lon = 38.5023, 43.3820  # Sinyal beklenirken referans koordinat
+    lat, lon = 38.5023, 43.3820  # Referans koordinat
     konum_baslik = "GPS Aranıyor..."
-    konum_alt_metin = "Uydu bağlantısı bekleniyor"
+    konum_alt_metin = "Uydu sinyali bekleniyor"
     konum_kaynagi = "GPS Sinyali Bekleniyor"
 
   now_str = datetime.now().strftime("%d.%m.%Y   %H:%M:%S")
@@ -212,7 +212,7 @@ def render_dashboard():
       crash_active_final = True
 
   # ------------------------------------------
-  # ARAYÜZ BİLEŞENLERİNİN OLUŞTURULMASI
+  # ARAYÜZ BİLEŞENLERİ
   # ------------------------------------------
 
   # Üst Başlık Konsolu
@@ -220,12 +220,12 @@ def render_dashboard():
       f"""
         <div class="top-header">
             <div>
-                <h2 style="margin:0; color:#ffffff; font-size:22px; letter-spacing:0.5px;">🛡️ AKILLI KASK TELEMETRİSİ <span style="font-size:12px; background:#0284c7; color:white; padding:3px 10px; border-radius:12px; margin-left:8px; font-weight:600;">KASK-001</span></h2>
-                <p style="margin:3px 0 0 0; color:#94a3b8; font-size:12px;">TÜBİTAK Proje Sunum ve Canlı Takip Paneli</p>
+                <h2 style="margin:0; color:#ffffff; font-size:23px; letter-spacing:0.5px; text-shadow: 0 0 10px rgba(0,180,216,0.5);">🛡️ AKILLI KASK TELEMETRİSİ <span style="font-size:12px; background:#00b4d8; color:#050811; padding:3px 10px; border-radius:12px; margin-left:8px; font-weight:800;">KASK-001</span></h2>
+                <p style="margin:3px 0 0 0; color:#90e0ef; font-size:12px; font-weight:600;">TÜBİTAK Proje Sunum ve Canlı Takip Paneli</p>
             </div>
             <div style="text-align:right;">
-                <span style="color:#94a3b8; font-size:12px;">📅 {now_str}</span><br>
-                <span style="color:#34d399; font-weight:700; font-size:12px;">⚡ ESP32 • CANLI &nbsp;|&nbsp; 192.168.4.1</span>
+                <span style="color:#90e0ef; font-size:12px; font-weight:600;">📅 {now_str}</span><br>
+                <span style="color:#00f5d4; font-weight:900; font-size:13px; text-shadow: 0 0 8px rgba(0,245,212,0.6);">⚡ ESP32 • CANLI &nbsp;|&nbsp; 192.168.4.1</span>
             </div>
         </div>
     """,
@@ -236,7 +236,7 @@ def render_dashboard():
   st.markdown(
       """
         <div class="driver-box">
-            <span>👤 SÜRÜCÜ PROFİLİ:</span> <span style="color:#ffffff; font-weight:700;">Demo Sürücü (TÜBİTAK Test Ekipmanı)</span>
+            <span>👤 SÜRÜCÜ PROFİLİ:</span> <span style="color:#ffffff; font-weight:800;">Demo Sürücü (TÜBİTAK Test Ekipmanı)</span>
         </div>
     """,
       unsafe_allow_html=True,
@@ -269,23 +269,23 @@ def render_dashboard():
         """
             <div class="status-normal">
                 ✔ SİSTEM GÜVENLİ VE AKTİF
-                <div style="font-size:12px; font-weight:normal; color:#94a3b8; margin-top:2px;">Tüm telemetri sensörleri normal değerlerde çalışıyor.</div>
+                <div style="font-size:12px; font-weight:600; color:#a7f3d0; margin-top:2px;">Tüm telemetri sensörleri normal değerlerde çalışıyor.</div>
             </div>
         """,
         unsafe_allow_html=True,
     )
 
-  # 4'lü Endüstriyel Metrik Kartları
+  # 4'lü Endüstriyel Parlak Metrik Kartları
   c1, c2, c3, c4 = st.columns(4)
 
   with c1:
     kaza_txt = "Kaza Var!" if is_crash_detected else "Normal"
     st.markdown(
         f"""
-            <div class="card-box" style="border-top: 4px solid {'#ef4444' if is_crash_detected else '#10b981'};">
-                <div><span style="font-size:16px;">🚨</span> <b style="color:#e2e8f0; font-size:13px;">KAZA DURUMU</b></div>
-                <div style="font-size:18px; font-weight:800; color:{'#ef4444' if is_crash_detected else '#34d399'};">{kaza_txt}</div>
-                <div style="font-size:11px; color:#94a3b8;">İvme Sensörü: {round(ivme_val, 2)} G</div>
+            <div class="card-box" style="border-top: 5px solid {'#ef4444' if is_crash_detected else '#10b981'};">
+                <div><span style="font-size:16px;">🚨</span> <b style="color:#f8fafc; font-size:13px; letter-spacing:0.5px;">KAZA DURUMU</b></div>
+                <div style="font-size:20px; font-weight:900; color:{'#f87171' if is_crash_detected else '#34d399'}; text-shadow: 0 0 10px rgba(0,0,0,0.5);">{kaza_txt}</div>
+                <div style="font-size:11px; color:#94a3b8; font-weight:600;">İvme Sensörü: {round(ivme_val, 2)} G</div>
             </div>
         """,
         unsafe_allow_html=True,
@@ -295,10 +295,10 @@ def render_dashboard():
     gaz_txt = "Yüksek Gaz!" if duman_val > 350 else "Temiz Hava"
     st.markdown(
         f"""
-            <div class="card-box" style="border-top: 4px solid {'#f59e0b' if duman_val > 350 else '#10b981'};">
-                <div><span style="font-size:16px;">⚠️</span> <b style="color:#e2e8f0; font-size:13px;">ALKOL / BUHAR</b></div>
-                <div style="font-size:18px; font-weight:800; color:{'#f59e0b' if duman_val > 350 else '#34d399'};">{gaz_txt}</div>
-                <div style="font-size:10px; color:#94a3b8; line-height:1.2;">Sensör Ölçümü: {duman_val} ppm</div>
+            <div class="card-box" style="border-top: 5px solid {'#f59e0b' if duman_val > 350 else '#10b981'};">
+                <div><span style="font-size:16px;">⚠️</span> <b style="color:#f8fafc; font-size:13px; letter-spacing:0.5px;">ALKOL / BUHAR</b></div>
+                <div style="font-size:20px; font-weight:900; color:{'#fbbf24' if duman_val > 350 else '#34d399'}; text-shadow: 0 0 10px rgba(0,0,0,0.5);">{gaz_txt}</div>
+                <div style="font-size:10px; color:#94a3b8; font-weight:600; line-height:1.2;">Sensör Ölçümü: {duman_val} ppm</div>
             </div>
         """,
         unsafe_allow_html=True,
@@ -307,10 +307,10 @@ def render_dashboard():
   with c3:
     st.markdown(
         f"""
-            <div class="card-box" style="border-top: 4px solid #38bdf8;">
-                <div><span style="font-size:16px;">📍</span> <b style="color:#e2e8f0; font-size:13px;">GPS KONUMU</b></div>
-                <div style="font-size:15px; font-weight:800; color:#ffffff;">{konum_baslik}</div>
-                <div style="font-size:10px; color:#94a3b8; line-height:1.2;">Lat: {round(lat, 4)} | Lon: {round(lon, 4)}</div>
+            <div class="card-box" style="border-top: 5px solid #00b4d8;">
+                <div><span style="font-size:16px;">📍</span> <b style="color:#f8fafc; font-size:13px; letter-spacing:0.5px;">GPS KONUMU</b></div>
+                <div style="font-size:17px; font-weight:900; color:#00f5d4; text-shadow: 0 0 10px rgba(0,245,212,0.4);">{konum_baslik}</div>
+                <div style="font-size:10px; color:#94a3b8; font-weight:600; line-height:1.2;">Lat: {round(lat, 4)} | Lon: {round(lon, 4)}</div>
             </div>
         """,
         unsafe_allow_html=True,
@@ -320,10 +320,10 @@ def render_dashboard():
     sos_txt = "AKTİF!" if sos_val == 1 else "Beklemede"
     st.markdown(
         f"""
-            <div class="card-box" style="border-top: 4px solid {'#ef4444' if sos_val == 1 else '#10b981'};">
-                <div><span style="font-size:16px;">🆘</span> <b style="color:#e2e8f0; font-size:13px;">SOS ÇAĞRISI</b></div>
-                <div style="font-size:18px; font-weight:800; color:{'#ef4444' if sos_val == 1 else '#34d399'};">{sos_txt}</div>
-                <div style="font-size:11px; color:#94a3b8;">Donanımsal Buton</div>
+            <div class="card-box" style="border-top: 5px solid {'#ef4444' if sos_val == 1 else '#10b981'};">
+                <div><span style="font-size:16px;">🆘</span> <b style="color:#f8fafc; font-size:13px; letter-spacing:0.5px;">SOS ÇAĞRISI</b></div>
+                <div style="font-size:20px; font-weight:900; color:{'#f87171' if sos_val == 1 else '#34d399'}; text-shadow: 0 0 10px rgba(0,0,0,0.5);">{sos_txt}</div>
+                <div style="font-size:11px; color:#94a3b8; font-weight:600;">Donanımsal Buton</div>
             </div>
         """,
         unsafe_allow_html=True,
@@ -370,62 +370,62 @@ def render_dashboard():
         name="Uydu Görüntüsü",
     ).add_to(m)
 
-    # Modern Motosiklet Kaskı ve Neon Halka İçeren Özel HTML Markeri
+    # Ultra Parlak Neon Halkalı ve Kask Simgeli HTML Marker
     helmet_icon_html = """
     <div style="
         position: relative;
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 60px;
-        height: 60px;
+        width: 65px;
+        height: 65px;
     ">
         <div style="
             position: absolute;
-            width: 50px;
-            height: 50px;
-            background: rgba(56, 189, 248, 0.25);
-            border: 2px solid #38bdf8;
+            width: 55px;
+            height: 55px;
+            background: rgba(0, 245, 212, 0.35);
+            border: 2px solid #00f5d4;
             border-radius: 50%;
-            animation: pulse-ring 2s infinite;
+            animation: pulse-ring 1.8s infinite;
         "></div>
         <div style="
             position: relative;
-            background: linear-gradient(135deg, #0f172a, #1e1b4b);
-            border: 2px solid #38bdf8;
+            background: linear-gradient(135deg, #0d1b2a, #1b263b);
+            border: 2px solid #00f5d4;
             border-radius: 50%;
-            width: 42px;
-            height: 42px;
+            width: 44px;
+            height: 44px;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 0 15px rgba(56, 189, 248, 0.7);
+            box-shadow: 0 0 20px rgba(0, 245, 212, 0.8);
         ">
-            <img src="https://cdn-icons-png.flaticon.com/512/2965/2965352.png" style="width: 24px; height: 24px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));" />
+            <img src="https://cdn-icons-png.flaticon.com/512/2965/2965352.png" style="width: 25px; height: 25px; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.8));" />
         </div>
         <div style="
             position: absolute;
-            bottom: -22px;
+            bottom: -24px;
             left: 50%;
             transform: translateX(-50%);
-            background: #0f172a;
-            color: #38bdf8;
+            background: #0d1b2a;
+            color: #00f5d4;
             padding: 2px 8px;
             font-size: 10px;
-            font-weight: 800;
+            font-weight: 900;
             border-radius: 6px;
-            border: 1px solid #38bdf8;
+            border: 1px solid #00f5d4;
             white-space: nowrap;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.7);
             letter-spacing: 0.5px;
         ">KASK-001</div>
     </div>
     
     <style>
     @keyframes pulse-ring {
-        0% { transform: scale(0.95); opacity: 0.8; }
-        50% { transform: scale(1.35); opacity: 0.2; }
-        100% { transform: scale(0.95); opacity: 0.8; }
+        0% { transform: scale(0.95); opacity: 0.9; }
+        50% { transform: scale(1.4); opacity: 0.2; }
+        100% { transform: scale(0.95); opacity: 0.9; }
     }
     </style>
     """
@@ -433,7 +433,7 @@ def render_dashboard():
     folium.Marker(
         [lat, lon],
         icon=folium.DivIcon(
-            html=helmet_icon_html, icon_size=(60, 60), icon_anchor=(30, 30)
+            html=helmet_icon_html, icon_size=(65, 65), icon_anchor=(32, 32)
         ),
         tooltip="KASK-001 (Canlı GPS)",
     ).add_to(m)
@@ -455,7 +455,7 @@ def render_dashboard():
     st.markdown("### 📌 TELEMETRİ ÖZETİ")
     st.markdown(
         """
-        <div style="background: rgba(15, 23, 42, 0.6); padding: 14px; border-radius: 10px; border: 1px solid #1e293b; font-size: 13px;">
+        <div style="background: rgba(13, 27, 42, 0.7); padding: 14px; border-radius: 10px; border: 1px solid #1b263b; font-size: 13px;">
             <p style="margin-bottom:8px;"><b>Bağlantı Protokolü:</b> Firebase Realtime DB</p>
             <p style="margin-bottom:8px;"><b>Donanım Birimi:</b> Deneyap Kart V2 (ESP32)</p>
             <p style="margin-bottom:8px;"><b>Konum Servisi:</b> Otomatik Canlı GPS</p>
