@@ -12,8 +12,8 @@ st.title("🪖 TÜBİTAK Akıllı Kask Paneli")
 st.write("Adafruit IO Üzerinden Gerçek Zamanlı Canlı Takip")
 
 # Adafruit IO Bilgileriniz
-AIO_USERNAME = "ismail221"
-AIO_KEY = "aio_flDp79YSaeJKdDDyIUwOks7vb7SH"
+AIO_USERNAME = "ismail7221"
+AIO_KEY = "aio_flDp79YSaeJKdDDyIUwOks7vb7SH"  # Kendi AIO Key'inizi buraya yazın
 
 headers = {"X-AIO-Key": AIO_KEY}
 placeholder = st.empty()
@@ -31,9 +31,9 @@ def adafruit_verilerini_cek(feed_key):
 
 
 while True:
-  ivme_data = adafruit_verilerini_cek("kask-ivme")
-  duman_data = adafruit_verilerini_cek("kask-duman")
-  sos_data = adafruit_verilerini_cek("kask-sos")
+  ivme_data = adafruit_verilerini_cek("tubitak-proje.ivme")
+  duman_data = adafruit_verilerini_cek("tubitak-proje.duman")
+  sos_data = adafruit_verilerini_cek("tubitak-proje.sos")
 
   with placeholder.container():
     if ivme_data and "created_at" in ivme_data:
